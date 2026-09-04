@@ -5736,3 +5736,45 @@ INSERT IGNORE INTO city (id, name, state_id) VALUES
     (5569, 'Tupiratins', 27),
     (5570, 'Wanderlândia', 27),
     (5571, 'Xambioá', 27);
+
+INSERT IGNORE INTO address (id, street, neighborhood, number, complement, city_id) VALUES
+    (1, 'SIG Quadra 4', 'Setor de Indústrias Gráficas', 327, 'Sede do Inep', 804),
+    (2, 'Rua dos Andradas', 'Santa Ifigênia', 140, NULL, 5285),
+    (3, 'Rua Dona Germaine Burchard', 'Água Branca', 515, NULL, 5285),
+    (4, 'Rua Josué de Castro', 'Barão Geraldo', 120, 'Cidade Universitária Zeferino Vaz', 4813),
+    (5, 'Rua Santa Alexandrina', 'Rio Comprido', 1011, NULL, 3662),
+    (6, 'SAAN Quadra 1', 'Setor de Armazenagem e Abastecimento Norte', 1115, 'Edifício Cebraspe, Lotes 1115 a 1145', 804),
+    (7, 'Avenida Antônio Carlos', 'Pampulha', 6627, 'Unidade Administrativa III, Campus Pampulha', 1628),
+    (8, 'Rua Ramiro Barcelos', 'Santa Cecília', 2574, 'Portão K, Campus Saúde', 4175),
+    (9, 'Rua dos Funcionários', 'Juvevê', 1540, NULL, 2878),
+    (10, 'Campus Universitário Reitor João David Ferreira Lima', 'Trindade', 0, 'Comissão Permanente do Vestibular (Coperve)', 4503);
+
+INSERT IGNORE INTO institution (id, name, acronym, address_id) VALUES
+    (1, 'Instituto Nacional de Estudos e Pesquisas Educacionais Anísio Teixeira', 'INEP', 1),
+    (2, 'Fundação Universitária para o Vestibular', 'FUVEST', 2),
+    (3, 'Fundação para o Vestibular da Universidade Estadual Paulista Júlio de Mesquita Filho', 'VUNESP', 3),
+    (4, 'Comissão Permanente para os Vestibulares da Unicamp', 'COMVEST', 4),
+    (5, 'Fundação Cesgranrio', 'CESGRANRIO', 5),
+    (6, 'Centro Brasileiro de Pesquisa em Avaliação e Seleção e de Promoção de Eventos', 'CEBRASPE', 6),
+    (7, 'Comissão Permanente do Vestibular da UFMG', 'COPEVE-UFMG', 7),
+    (8, 'Comissão Permanente de Seleção da UFRGS', 'COPERSE-UFRGS', 8),
+    (9, 'Núcleo de Concursos da UFPR', 'NC-UFPR', 9),
+    (10, 'Comissão Permanente do Vestibular da UFSC', 'COPERVE-UFSC', 10);
+
+INSERT IGNORE INTO entrance_exam (id, name, year, stage, institution_id) VALUES
+    (1, 'ENEM', 2026, '1º Dia', 1),
+    (2, 'ENEM', 2026, '2º Dia', 1),
+    (3, 'Vestibular FUVEST (USP)', 2026, '1ª Fase', 2),
+    (4, 'Vestibular FUVEST (USP)', 2026, '2ª Fase', 2),
+    (5, 'Vestibular Unesp', 2026, '1ª Fase', 3),
+    (6, 'Vestibular Unesp', 2026, '2ª Fase', 3),
+    (7, 'Vestibular Unicamp', 2026, '1ª Fase', 4),
+    (8, 'Vestibular Unicamp', 2026, '2ª Fase', 4),
+    (9, 'Vestibular PUC-Rio', 2026, 'Fase Única', 5),
+    (10, 'Vestibular UnB (PAS)', 2026, '1ª Etapa', 6),
+    (11, 'Vestibular UnB (PAS)', 2026, '2ª Etapa', 6),
+    (12, 'Vestibular UnB (PAS)', 2026, '3ª Etapa', 6),
+    (13, 'Vestibular Seriado UFMG', 2026, 'Etapa Única', 7),
+    (14, 'Concurso Vestibular UFRGS', 2026, 'Fase Única', 8),
+    (15, 'Vestibular UFPR', 2026, 'Fase Única', 9),
+    (16, 'Vestibular Unificado UFSC/IFSC/IFC', 2026, 'Fase Única', 10);
