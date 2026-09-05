@@ -5778,3 +5778,7 @@ INSERT IGNORE INTO entrance_exam (id, name, year, stage, institution_id) VALUES
     (14, 'Concurso Vestibular UFRGS', 2026, 'Fase Única', 8),
     (15, 'Vestibular UFPR', 2026, 'Fase Única', 9),
     (16, 'Vestibular Unificado UFSC/IFSC/IFC', 2026, 'Fase Única', 10);
+
+INSERT IGNORE INTO user_role (id, description) VALUES
+    (1, 'Administrador'),
+    (2, 'Estudante');
