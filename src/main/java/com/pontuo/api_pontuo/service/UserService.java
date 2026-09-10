@@ -14,6 +14,9 @@ import java.util.Optional;
 @Service
 public class UserService {
 
+    /** Perfil atribuído a quem se cadastra pela rota pública. */
+    private static final String DEFAULT_ROLE_DESCRIPTION = "Estudante";
+
     private final UserRepository repository;
     private final UserRoleRepository userRoleRepository;
     private final PasswordEncoder passwordEncoder;
@@ -58,6 +61,17 @@ public class UserService {
         user.setUserRole(findUserRole(userRoleId));
         user.setPassword(passwordEncoder.encode(user.getPassword()));
         return repository.save(user);
+    }
+
+    /**
+     * Cadastro público: a role nunca vem da requisição, é sempre a de estudante.
+     * Assim a rota aberta não pode ser usada para criar um administrador.
+     */
+    public User register(User user) {
+        UserRole defaultRole = userRoleRepository.findByDescription(DEFAULT_ROLE_DESCRIPTION)
+                .orElseThrow(() -> new IllegalStateException(
+                        "UserRole padrão não encontrada: " + DEFAULT_ROLE_DESCRIPTION));
+        return create(user, defaultRole.getId());
     }
 
     public User update(Long id, User updated, Long userRoleId) {
