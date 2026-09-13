@@ -36,6 +36,9 @@ public class EntranceExamService {
     }
 
     public List<EntranceExam> findByInstitutionId(Long institutionId) {
+        if (!institutionRepository.existsById(institutionId)) {
+            throw new EntityNotFoundException("Institution não encontrada: id=" + institutionId);
+        }
         return repository.findByInstitutionId(institutionId);
     }
 

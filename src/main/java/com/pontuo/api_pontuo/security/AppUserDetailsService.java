@@ -17,10 +17,6 @@ public class AppUserDetailsService implements UserDetailsService {
         this.repository = repository;
     }
 
-    /**
-     * Aceita username ou email como identificador de login. A mensagem de erro
-     * é sempre genérica para não revelar se a conta existe.
-     */
     @Override
     @Transactional(readOnly = true)
     public UserDetails loadUserByUsername(String login) throws UsernameNotFoundException {

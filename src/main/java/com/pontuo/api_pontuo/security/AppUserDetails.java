@@ -11,10 +11,6 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Locale;
 
-/**
- * Adapta a entidade User para o contrato que o Spring Security espera.
- * A senha exposta aqui é sempre o hash BCrypt gravado no banco.
- */
 public class AppUserDetails implements UserDetails {
 
     private final User user;
@@ -27,11 +23,6 @@ public class AppUserDetails implements UserDetails {
         return user;
     }
 
-    /**
-     * Converte a descrição da UserRole em authority: "Administrador" vira
-     * ROLE_ADMINISTRADOR. Acentos e espaços são normalizados para que a
-     * descrição cadastrada no banco possa ser usada nas regras de acesso.
-     */
     public static String toAuthority(UserRole userRole) {
         String description = userRole == null ? null : userRole.getDescription();
         if (description == null || description.isBlank()) {

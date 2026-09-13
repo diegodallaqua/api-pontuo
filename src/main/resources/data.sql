@@ -5747,7 +5747,7 @@ INSERT IGNORE INTO address (id, street, neighborhood, number, complement, city_i
     (7, 'Avenida Antônio Carlos', 'Pampulha', 6627, 'Unidade Administrativa III, Campus Pampulha', 1628),
     (8, 'Rua Ramiro Barcelos', 'Santa Cecília', 2574, 'Portão K, Campus Saúde', 4175),
     (9, 'Rua dos Funcionários', 'Juvevê', 1540, NULL, 2878),
-    (10, 'Campus Universitário Reitor João David Ferreira Lima', 'Trindade', 0, 'Comissão Permanente do Vestibular (Coperve)', 4503);
+    (10, 'Campus Universitário Reitor João David Ferreira Lima', 'Trindade', 1, 'Comissão Permanente do Vestibular (Coperve)', 4503);
 
 INSERT IGNORE INTO institution (id, name, acronym, address_id) VALUES
     (1, 'Instituto Nacional de Estudos e Pesquisas Educacionais Anísio Teixeira', 'INEP', 1),

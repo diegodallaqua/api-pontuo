@@ -46,7 +46,7 @@ public class AddressService {
     public Address update(Long id, Address updated, Long cityId) {
         Address existing = repository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException(
-                        "City não encontrada: id=" + id));
+                        "Address não encontrado: id=" + id));
         existing.setStreet(updated.getStreet());
         existing.setNeighborhood(updated.getNeighborhood());
         existing.setNumber(updated.getNumber());
@@ -57,7 +57,7 @@ public class AddressService {
 
     public void delete(Long id) {
         if (!repository.existsById(id)) {
-            throw new EntityNotFoundException("City não encontrada: id=" + id);
+            throw new EntityNotFoundException("Address não encontrado: id=" + id);
         }
         repository.deleteById(id);
     }

@@ -6,11 +6,6 @@ import org.springframework.security.oauth2.core.OAuth2TokenValidatorResult;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.stereotype.Component;
 
-/**
- * Rejeita tokens que passaram pelo logout. Tokens sem jti também são recusados,
- * porque todo token emitido por esta API tem jti: a ausência indica um token
- * que não veio daqui ou que não pode ser revogado.
- */
 @Component
 public class RevokedTokenValidator implements OAuth2TokenValidator<Jwt> {
 

@@ -15,13 +15,9 @@ import java.time.Instant;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
-/**
- * Emite os access tokens assinados em HS256.
- */
 @Service
 public class JwtService {
 
-    /** Nome do claim lido pelo conversor de authorities em {@code SecurityConfig}. */
     public static final String ROLES_CLAIM = "roles";
 
     private static final JwsHeader HEADER = JwsHeader.with(MacAlgorithm.HS256).build();
@@ -57,12 +53,6 @@ public class JwtService {
         return new IssuedToken(value, expiresAt, expiration.toSeconds());
     }
 
-    /**
-     * Só as authorities de role entram no claim, sem o prefixo ROLE_ (ele é
-     * reaplicado na leitura do token). As demais authorities que o Spring
-     * Security agrega à autenticação, como o fator de senha, não descrevem
-     * permissão de perfil e ficariam de fora das regras de acesso.
-     */
     private String authorities(Authentication authentication) {
         return authentication.getAuthorities().stream()
                 .map(GrantedAuthority::getAuthority)

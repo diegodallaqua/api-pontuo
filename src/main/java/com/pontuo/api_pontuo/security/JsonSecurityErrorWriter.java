@@ -13,11 +13,6 @@ import org.springframework.security.web.access.AccessDeniedHandler;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 
-/**
- * Faz as falhas de autenticação e autorização responderem no mesmo formato
- * {@code {"message": "..."}} usado pelo ApiExceptionHandler, em vez da página
- * de erro padrão do container.
- */
 public final class JsonSecurityErrorWriter {
 
     private JsonSecurityErrorWriter() {
