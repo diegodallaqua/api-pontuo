@@ -22,7 +22,7 @@ class AddressRequestDTOValidationTest extends AbstractDtoValidationTest {
     }
 
     @Test
-    @DisplayName("rejeita número zero, como o que havia no data.sql")
+    @DisplayName("rejeita número zero, como o do endereço 10 antes da migration V3")
     void deveRejeitarNumeroZero() {
         assertEquals(Set.of("number deve ser maior que zero"), mensagens(comNumero(0), "number"));
     }

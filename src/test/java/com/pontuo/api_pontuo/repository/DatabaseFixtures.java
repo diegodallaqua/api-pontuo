@@ -40,16 +40,16 @@ public class DatabaseFixtures {
 
     public User estudante(String username) {
         UserRole estudante = userRoleRepository.findByDescription("Estudante")
-                .orElseThrow(() -> new IllegalStateException("data.sql não carregou o perfil Estudante"));
+                .orElseThrow(() -> new IllegalStateException("migration V2 não carregou o perfil Estudante"));
         return userRepository.save(new User(username, username + "@pontuo.com",
                 LocalDate.of(2005, 1, 1), "$2a$10$hash-de-teste", estudante));
     }
 
     public Question questao(String enunciado) {
         EntranceExam enem = entranceExamRepository.findById(ENEM_PRIMEIRO_DIA_ID)
-                .orElseThrow(() -> new IllegalStateException("data.sql não carregou o ENEM id=1"));
+                .orElseThrow(() -> new IllegalStateException("migration V2 não carregou o ENEM id=1"));
         Subject biologia = subjectRepository.findById(BIOLOGIA_ID)
-                .orElseThrow(() -> new IllegalStateException("data.sql não carregou Biologia id=5"));
+                .orElseThrow(() -> new IllegalStateException("migration V2 não carregou Biologia id=5"));
         return questionRepository.save(new Question(enunciado, null, (short) 2, enem, null, biologia));
     }
 

@@ -9,6 +9,24 @@ jobs:
   testes:
     runs-on: ubuntu-latest
 
+    # Banco vazio a cada execução: o Flyway cria a estrutura desde a V1, então os
+    # testes com @RequiresDatabase também rodam aqui. Credenciais só valem para a CI.
+    services:
+      mariadb:
+        image: mariadb:12.3
+        env:
+          MARIADB_DATABASE: db_pontuo
+          MARIADB_USER: db_pontuo
+          MARIADB_PASSWORD: senha-apenas-para-ci
+          MARIADB_ROOT_PASSWORD: root-apenas-para-ci
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="healthcheck.sh --connect --innodb_initialized"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=10
+
     steps:
       - uses: actions/checkout@v4
 
@@ -22,7 +40,10 @@ jobs:
       - name: Permitir execução do Maven Wrapper
         run: chmod +x mvnw
 
-      # Sem MariaDB e sem .env na CI: os testes marcados com @RequiresDatabase são
-      # pulados e os @Pendente só rodam com -Dpontuo.pendentes=true.
+      # Os testes @Pendente só rodam com -Dpontuo.pendentes=true.
       - name: Testes
         run: ./mvnw -B verify
+        env:
+          DB_USERNAME: db_pontuo
+          DB_PASSWORD: senha-apenas-para-ci
+          JWT_SECRET: segredo-apenas-para-ci-com-mais-de-32-bytes

@@ -24,7 +24,7 @@ public class EntranceExam  {
     @Column(name = "year", columnDefinition = "SMALLINT")
     private short year;
 
-     @Column(name = "stage", length = 40)
+    @Column(name = "stage", length = 40, nullable = false)
     private String stage;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)

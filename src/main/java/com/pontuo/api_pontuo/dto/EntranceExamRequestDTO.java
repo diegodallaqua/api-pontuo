@@ -13,6 +13,7 @@ public record EntranceExamRequestDTO(
         @Positive(message = "year deve ser maior que zero")
         short year,
 
+        @NotBlank(message = "stage é obrigatório")
         @Size(max = 40, message = "stage deve ter no máximo 40 caracteres")
         String stage,
 
