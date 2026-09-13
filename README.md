@@ -1,147 +1,151 @@
 # api-pontuo
 
-API REST do **Pontuo**, uma plataforma de preparação para vestibulares. Ela
-mantém o catálogo de instituições, vestibulares, matérias, tópicos e questões
-de múltipla escolha, e permite que estudantes montem e respondam simulados.
+**English** | [Português](README.pt-BR.md)
 
-A API é stateless, autenticada por JWT e separa o acesso em dois perfis:
-**Estudante**, que consulta o catálogo e gerencia simulados, e
-**Administrador**, que também mantém o catálogo e os usuários.
+REST API for **Pontuo**, a platform for preparing for Brazilian university
+entrance exams (*vestibulares*). It manages a catalog of institutions,
+entrance exams, subjects, topics and multiple-choice questions, and lets
+students build and answer mock exams.
 
-## Sumário
+The API is stateless, authenticated with JWT, and splits access into two
+roles: **Estudante** (student), who reads the catalog and manages mock exams,
+and **Administrador** (administrator), who also maintains the catalog and the
+users.
 
-- [Funcionalidades](#funcionalidades)
-- [Tecnologias](#tecnologias)
-- [Dependências](#dependências)
-- [Como rodar o projeto](#como-rodar-o-projeto)
-- [Banco de dados e migrations](#banco-de-dados-e-migrations)
+## Table of contents
+
+- [Features](#features)
+- [Technologies](#technologies)
+- [Dependencies](#dependencies)
+- [Running the project](#running-the-project)
+- [Database and migrations](#database-and-migrations)
 - [Endpoints](#endpoints)
-- [Autenticação e segurança](#autenticação-e-segurança)
-- [Testes](#testes)
-- [Integração contínua](#integração-contínua)
-- [Estrutura do projeto](#estrutura-do-projeto)
-- [Pontos ainda abertos](#pontos-ainda-abertos)
-- [Licença](#licença)
+- [Authentication and security](#authentication-and-security)
+- [Tests](#tests)
+- [Continuous integration](#continuous-integration)
+- [Project structure](#project-structure)
+- [Known limitations](#known-limitations)
+- [License](#license)
 
-## Funcionalidades
+## Features
 
-- **Localidades**: estados, cidades e endereços. Os 27 estados e as 5.571
-  cidades do Brasil já vêm cadastrados.
-- **Instituições e vestibulares**: bancas organizadoras (INEP, FUVEST, VUNESP,
-  COMVEST, CEBRASPE, entre outras) e seus vestibulares por ano e etapa
-  (ex.: ENEM 2026, 1º Dia e 2º Dia). Um vestibular é único pela combinação de
-  instituição, ano, nome e etapa.
-- **Conteúdo**: áreas do conhecimento, matérias e tópicos, organizados em
-  hierarquia (ex.: Ciências da Natureza › Biologia › Genética).
-- **Questões**: enunciado, explicação e dificuldade de 1 a 3, vinculadas a um
-  vestibular e classificadas por tópico **ou** por matéria. Cada questão tem
-  alternativas de A a E, sem letra repetida e com uma única alternativa
-  correta, e pode ter imagens.
-- **Simulados**: o estudante cria simulados com número de questões, tempo
-  máximo, horários de início e fim, acertos e aproveitamento. Uma questão não
-  se repete no mesmo simulado, e a alternativa marcada precisa pertencer à
-  questão respondida.
-- **Usuários e acesso**: cadastro público (sempre como Estudante), login por
-  username ou email, logout que invalida o token e gestão de usuários e
-  perfis pelo administrador.
+- **Locations**: states, cities and addresses. All 27 Brazilian states and
+  5,571 cities come preloaded.
+- **Institutions and entrance exams**: exam boards (INEP, FUVEST, VUNESP,
+  COMVEST, CEBRASPE and others) and their entrance exams by year and stage
+  (e.g. ENEM 2026, "1º Dia" and "2º Dia"). An entrance exam is unique by
+  institution, year, name and stage.
+- **Content**: knowledge areas, subjects and topics, organized as a hierarchy
+  (e.g. Natural Sciences › Biology › Genetics).
+- **Questions**: statement, explanation and difficulty from 1 to 3, linked to
+  an entrance exam and classified by topic **or** by subject. Each question
+  has answer options A to E, with no repeated letter and a single correct
+  option, and may have images.
+- **Mock exams**: students create mock exams with number of questions, time
+  limit, start and finish times, correct answers and accuracy. A question
+  cannot appear twice in the same mock exam, and the selected option must
+  belong to the answered question.
+- **Users and access**: public sign-up (always as a student), login with
+  username or email, logout that invalidates the token, and user and role
+  management by administrators.
 
-## Tecnologias
+## Technologies
 
-| Tecnologia | Versão | Uso |
+| Technology | Version | Purpose |
 |---|---|---|
-| Java | 17 | Linguagem |
-| Spring Boot | 4.1.1 | Base da aplicação |
-| Spring Web MVC | 7.0 | API REST |
-| Spring Data JPA / Hibernate | 7.4 | Persistência |
-| Spring Security + OAuth2 Resource Server | 7.1 | Autenticação JWT (HS256) e autorização por perfil |
-| Jakarta Bean Validation (Hibernate Validator) | 9.1 | Validação das requisições |
-| MariaDB | 12.3 (versão usada no desenvolvimento) | Banco de dados |
-| Flyway | 12.4 | Migrations do banco |
-| JUnit, Mockito, AssertJ, MockMvc | JUnit 6 / Mockito 5 | Testes automatizados |
-| Maven (via Maven Wrapper) | incluso no projeto | Build e dependências |
-| GitHub Actions | — | Integração contínua |
+| Java | 17 | Language |
+| Spring Boot | 4.1.1 | Application framework |
+| Spring Web MVC | 7.0 | REST API |
+| Spring Data JPA / Hibernate | 7.4 | Persistence |
+| Spring Security + OAuth2 Resource Server | 7.1 | JWT authentication (HS256) and role-based authorization |
+| Jakarta Bean Validation (Hibernate Validator) | 9.1 | Request validation |
+| MariaDB | 12.3 (version used in development) | Database |
+| Flyway | 12.4 | Database migrations |
+| JUnit, Mockito, AssertJ, MockMvc | JUnit 6 / Mockito 5 | Automated tests |
+| Maven (via Maven Wrapper) | bundled with the project | Build and dependencies |
+| GitHub Actions | — | Continuous integration |
 
-## Dependências
+## Dependencies
 
-Declaradas no [`pom.xml`](pom.xml). As versões são gerenciadas pelo
-`spring-boot-starter-parent` 4.1.1, exceto o spring-dotenv, gerenciado pelo
-seu próprio BOM (5.1.0).
+Declared in [`pom.xml`](pom.xml). Versions are managed by
+`spring-boot-starter-parent` 4.1.1, except spring-dotenv, which is managed by
+its own BOM (5.1.0).
 
-| Dependência | Para que serve |
+| Dependency | Purpose |
 |---|---|
-| `spring-boot-starter-webmvc` | Controllers REST, conversão JSON e servidor embutido |
-| `spring-boot-starter-data-jpa` | Repositórios e mapeamento das entidades com Hibernate |
-| `spring-boot-starter-security` | Filtros de segurança, regras de acesso e BCrypt |
-| `spring-boot-starter-oauth2-resource-server` | Emissão e validação dos tokens JWT |
-| `spring-boot-starter-validation` | Anotações de validação nos DTOs (`@NotBlank`, `@Size`...) |
-| `spring-boot-starter-flyway` + `flyway-mysql` | Execução das migrations no MariaDB |
-| `mariadb-java-client` | Driver JDBC do MariaDB |
-| `springboot4-dotenv` | Carrega as variáveis do arquivo `.env` |
-| `spring-boot-starter-webmvc-test` | JUnit, Mockito, AssertJ e MockMvc |
-| `spring-boot-starter-security-test` | Simulação de usuários e tokens nos testes |
-| `spring-boot-starter-data-jpa-test` | Testes de repositório com `@DataJpaTest` |
+| `spring-boot-starter-webmvc` | REST controllers, JSON conversion and embedded server |
+| `spring-boot-starter-data-jpa` | Repositories and entity mapping with Hibernate |
+| `spring-boot-starter-security` | Security filters, access rules and BCrypt |
+| `spring-boot-starter-oauth2-resource-server` | Issuing and validating JWT tokens |
+| `spring-boot-starter-validation` | Validation annotations on DTOs (`@NotBlank`, `@Size`...) |
+| `spring-boot-starter-flyway` + `flyway-mysql` | Running migrations on MariaDB |
+| `mariadb-java-client` | MariaDB JDBC driver |
+| `springboot4-dotenv` | Loads variables from the `.env` file |
+| `spring-boot-starter-webmvc-test` | JUnit, Mockito, AssertJ and MockMvc |
+| `spring-boot-starter-security-test` | Mock users and tokens in tests |
+| `spring-boot-starter-data-jpa-test` | Repository tests with `@DataJpaTest` |
 
-Não é preciso instalar nada disso manualmente: o Maven baixa as dependências
-no primeiro build.
+You don't need to install any of these manually: Maven downloads them on the
+first build.
 
-## Como rodar o projeto
+## Running the project
 
-### 1. Pré-requisitos
+### 1. Prerequisites
 
 - [Git](https://git-scm.com/)
-- [JDK 17](https://adoptium.net/) ou superior
-- [MariaDB](https://mariadb.org/download/) rodando em `localhost:3306`
+- [JDK 17](https://adoptium.net/) or later
+- [MariaDB](https://mariadb.org/download/) running on `localhost:3306`
 
-O Maven não precisa estar instalado: o projeto inclui o Maven Wrapper
-(`mvnw` e `mvnw.cmd`).
+Maven does not need to be installed: the project includes the Maven Wrapper
+(`mvnw` and `mvnw.cmd`).
 
-### 2. Clonar o repositório
+### 2. Clone the repository
 
 ```bash
 git clone https://github.com/diegodallaqua/api-pontuo.git
 cd api-pontuo
 ```
 
-### 3. Criar o banco e o usuário
+### 3. Create the database and user
 
-Conecte-se ao MariaDB como root (`mariadb -u root -p`) e execute:
+Connect to MariaDB as root (`mariadb -u root -p`) and run:
 
 ```sql
 CREATE DATABASE db_pontuo CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-CREATE USER 'db_pontuo'@'localhost' IDENTIFIED BY 'troque_esta_senha';
+CREATE USER 'db_pontuo'@'localhost' IDENTIFIED BY 'change_this_password';
 GRANT ALL PRIVILEGES ON db_pontuo.* TO 'db_pontuo'@'localhost';
 ```
 
-Crie apenas o banco vazio: as tabelas e os dados de referência são criados
-pelas migrations na primeira execução. Se o MariaDB estiver em outro host ou
-porta, ajuste `spring.datasource.url` em
+Create only the empty database: tables and reference data are created by the
+migrations on the first run. If MariaDB runs on another host or port, change
+`spring.datasource.url` in
 [`application.properties`](src/main/resources/application.properties).
 
-### 4. Configurar as variáveis de ambiente
+### 4. Configure the environment variables
 
-Copie o modelo para `.env` na raiz do projeto:
+Copy the template to `.env` in the project root:
 
 ```bash
 cp .env.example .env
 ```
 
-No PowerShell: `Copy-Item .env.example .env`.
+In PowerShell: `Copy-Item .env.example .env`.
 
-Preencha o `.env`:
+Fill in `.env`:
 
-| Variável | Descrição |
+| Variable | Description |
 |---|---|
-| `DB_USERNAME` | Usuário criado no passo 3 |
-| `DB_PASSWORD` | Senha desse usuário |
-| `JWT_SECRET` | Segredo de assinatura dos tokens, com no mínimo 32 caracteres |
+| `DB_USERNAME` | User created in step 3 |
+| `DB_PASSWORD` | That user's password |
+| `JWT_SECRET` | Token signing secret, at least 32 characters |
 
-Para gerar um `JWT_SECRET` aleatório:
+To generate a random `JWT_SECRET`:
 
 ```bash
 openssl rand -base64 48
 ```
 
-No PowerShell:
+In PowerShell:
 
 ```powershell
 $bytes = New-Object byte[] 48
@@ -149,32 +153,32 @@ $bytes = New-Object byte[] 48
 [Convert]::ToBase64String($bytes)
 ```
 
-O `.env` não é versionado. Sem `JWT_SECRET` a aplicação não sobe, para evitar
-que rode com uma chave conhecida.
+`.env` is not committed. Without `JWT_SECRET` the application refuses to
+start, so it never runs with a known key.
 
-### 5. Iniciar a aplicação
+### 5. Start the application
 
 ```bash
 ./mvnw spring-boot:run
 ```
 
-No Windows: `.\mvnw.cmd spring-boot:run`.
+On Windows: `.\mvnw.cmd spring-boot:run`.
 
-Na primeira execução o Maven baixa as dependências e o Flyway cria a estrutura
-do banco. O log deve mostrar
-`Successfully applied 6 migrations to schema db_pontuo`. A API fica
-disponível em `http://localhost:8080`.
+On the first run Maven downloads the dependencies and Flyway creates the
+database structure. The log should show
+`Successfully applied 6 migrations to schema db_pontuo`. The API is available
+at `http://localhost:8080`.
 
-Para gerar e executar o jar:
+To build and run the jar:
 
 ```bash
 ./mvnw clean package
 java -jar target/api-pontuo-0.0.1-SNAPSHOT.jar
 ```
 
-Execute o jar a partir da raiz do projeto, onde está o `.env`.
+Run the jar from the project root, where `.env` lives.
 
-### 6. Criar a primeira conta e fazer login
+### 6. Create the first account and log in
 
 ```bash
 curl -X POST http://localhost:8080/api/auth/register \
@@ -188,52 +192,52 @@ curl -X POST http://localhost:8080/api/auth/login \
   -d '{"username":"maria","password":"SenhaForte123"}'
 ```
 
-Use o `accessToken` da resposta nas demais requisições:
+Use the `accessToken` from the response in the other requests:
 
 ```bash
-curl http://localhost:8080/api/auth/me -H "Authorization: Bearer SEU_TOKEN"
+curl http://localhost:8080/api/auth/me -H "Authorization: Bearer YOUR_TOKEN"
 ```
 
-No PowerShell, chame `curl.exe` em vez de `curl`, ou use um cliente como
-Postman ou Insomnia.
+In PowerShell, call `curl.exe` instead of `curl`, or use a client such as
+Postman or Insomnia.
 
-### 7. Criar o primeiro administrador
+### 7. Create the first administrator
 
-O cadastro público só cria estudantes, e a gestão de usuários exige perfil de
-administrador. Promova a primeira conta direto no banco:
+Public sign-up only creates students, and user management requires the
+administrator role. Promote the first account directly in the database:
 
 ```sql
 UPDATE users SET user_role_id = 1 WHERE username = 'maria';
 ```
 
-Faça login de novo para receber um token com o perfil atualizado.
+Log in again to get a token with the updated role.
 
-## Banco de dados e migrations
+## Database and migrations
 
-A estrutura do banco é versionada com Flyway, em
-[`src/main/resources/db/migration`](src/main/resources/db/migration). As
-migrations rodam automaticamente sempre que a aplicação sobe, antes do
-Hibernate validar as entidades (`ddl-auto=validate`).
+The database structure is versioned with Flyway, in
+[`src/main/resources/db/migration`](src/main/resources/db/migration).
+Migrations run automatically every time the application starts, before
+Hibernate validates the entities (`ddl-auto=validate`).
 
-| Migration | O que faz |
+| Migration | What it does |
 |---|---|
-| `V1__criar_tabelas.sql` | Cria as 15 tabelas, índices e chaves estrangeiras |
-| `V2__inserir_dados_de_referencia.sql` | Áreas, matérias, tópicos, estados, cidades, endereços, instituições, vestibulares e perfis |
-| `V3__corrigir_numero_do_endereco_da_coperve.sql` | Corrige o número de um endereço cadastrado como 0 |
-| `V4__incluir_etapa_na_chave_unica_de_vestibular.sql` | Inclui a etapa na chave única de `entrance_exam` |
-| `V5__inserir_etapas_de_vestibular.sql` | Cadastra as etapas que faltavam (ENEM 2º Dia, 2ª fases e etapas do PAS) |
-| `V6__tornar_etapa_de_vestibular_obrigatoria.sql` | Torna `entrance_exam.stage` obrigatória |
+| `V1__criar_tabelas.sql` | Creates the 15 tables, indexes and foreign keys |
+| `V2__inserir_dados_de_referencia.sql` | Knowledge areas, subjects, topics, states, cities, addresses, institutions, entrance exams and roles |
+| `V3__corrigir_numero_do_endereco_da_coperve.sql` | Fixes an address whose number was stored as 0 |
+| `V4__incluir_etapa_na_chave_unica_de_vestibular.sql` | Adds the stage to the unique key of `entrance_exam` |
+| `V5__inserir_etapas_de_vestibular.sql` | Adds the missing stages (ENEM "2º Dia", second phases and PAS stages) |
+| `V6__tornar_etapa_de_vestibular_obrigatoria.sql` | Makes `entrance_exam.stage` required |
 
-Regras para alterar o banco:
+Rules for changing the database:
 
-- **Nunca edite uma migration já aplicada.** O Flyway guarda um checksum de
-  cada arquivo e recusa iniciar a aplicação se um deles mudar.
-- Toda mudança vira um arquivo novo, com a próxima versão
-  (ex.: `V7__adicionar_coluna_x.sql`).
-- Se uma migration falhar, a aplicação não sobe e o log mostra o erro do banco
-  e a linha do SQL.
+- **Never edit a migration that has already been applied.** Flyway stores a
+  checksum of each file and refuses to start the application if one changes.
+- Every change goes in a new file with the next version
+  (e.g. `V7__add_column_x.sql`).
+- If a migration fails, the application does not start and the log shows the
+  database error and the SQL line.
 
-Para ver em que versão o banco está:
+To check which version the database is at:
 
 ```sql
 SELECT version, description, installed_on, success
@@ -241,72 +245,72 @@ FROM flyway_schema_history
 ORDER BY installed_rank;
 ```
 
-Bancos criados antes da adoção do Flyway já tinham o equivalente à V1 e à V2.
-Por isso o projeto usa `spring.flyway.baseline-on-migrate=true` com
-`baseline-version=2`: nesses bancos o Flyway registra a versão 2 como ponto de
-partida e aplica só as migrations seguintes. Um banco vazio não é afetado e
-recebe todas desde a V1.
+Databases created before Flyway was adopted already had the equivalent of V1
+and V2. That is why the project sets `spring.flyway.baseline-on-migrate=true`
+with `baseline-version=2`: on those databases Flyway records version 2 as the
+starting point and applies only the later migrations. An empty database is not
+affected and receives every migration from V1.
 
 ## Endpoints
 
-Todos os recursos seguem o mesmo padrão CRUD:
+Every resource follows the same CRUD pattern:
 
-| Método | Rota | Resposta |
+| Method | Route | Response |
 |---|---|---|
-| `GET` | `/api/<recurso>` | Lista, com filtros opcionais |
-| `GET` | `/api/<recurso>/{id}` | Um registro, ou `404` |
-| `POST` | `/api/<recurso>` | `201` com o registro criado |
-| `PUT` | `/api/<recurso>/{id}` | Registro atualizado |
-| `DELETE` | `/api/<recurso>/{id}` | `204` |
+| `GET` | `/api/<resource>` | List, with optional filters |
+| `GET` | `/api/<resource>/{id}` | A single record, or `404` |
+| `POST` | `/api/<resource>` | `201` with the created record |
+| `PUT` | `/api/<resource>/{id}` | Updated record |
+| `DELETE` | `/api/<resource>/{id}` | `204` |
 
-| Recurso | Rota | Filtros da listagem |
+| Resource | Route | List filters |
 |---|---|---|
-| Estados | `/api/states` | — |
-| Cidades | `/api/cities` | `stateId` |
-| Endereços | `/api/addresses` | `cityId` |
-| Instituições | `/api/institutions` | `acronym` |
-| Vestibulares | `/api/entrance-exams` | `institutionId`, `year` |
-| Áreas do conhecimento | `/api/knowledge-areas` | — |
-| Matérias | `/api/subjects` | `knowledgeAreaId` |
-| Tópicos | `/api/topics` | `subjectId` |
-| Questões | `/api/questions` | `entranceExamId`, `topicId`, `subjectId` |
-| Alternativas | `/api/answer-options` | `questionId` |
-| Imagens de questões | `/api/question-images` | `questionId` |
-| Simulados | `/api/mock-exams` | `userId` |
-| Questões do simulado | `/api/mock-exam-questions` | `mockExamId`, `questionId` |
-| Usuários | `/api/users` | `userRoleId` |
-| Perfis | `/api/user-roles` | — |
+| States | `/api/states` | — |
+| Cities | `/api/cities` | `stateId` |
+| Addresses | `/api/addresses` | `cityId` |
+| Institutions | `/api/institutions` | `acronym` |
+| Entrance exams | `/api/entrance-exams` | `institutionId`, `year` |
+| Knowledge areas | `/api/knowledge-areas` | — |
+| Subjects | `/api/subjects` | `knowledgeAreaId` |
+| Topics | `/api/topics` | `subjectId` |
+| Questions | `/api/questions` | `entranceExamId`, `topicId`, `subjectId` |
+| Answer options | `/api/answer-options` | `questionId` |
+| Question images | `/api/question-images` | `questionId` |
+| Mock exams | `/api/mock-exams` | `userId` |
+| Mock exam questions | `/api/mock-exam-questions` | `mockExamId`, `questionId` |
+| Users | `/api/users` | `userRoleId` |
+| Roles | `/api/user-roles` | — |
 
-Quando mais de um filtro é enviado, vale apenas o primeiro na ordem da tabela.
-Por exemplo, em `/api/questions?entranceExamId=1&topicId=2` só o vestibular é
-considerado.
+When more than one filter is sent, only the first one in the table's order
+applies. For example, in `/api/questions?entranceExamId=1&topicId=2` only the
+entrance exam is used.
 
-Respostas de erro:
+Error responses (messages are returned in Portuguese):
 
-| Status | Quando | Corpo |
+| Status | When | Body |
 |---|---|---|
-| `400` | Corpo da requisição inválido | Mensagem por campo: `{"stage": "stage é obrigatório"}` |
-| `401` | Sem token, token inválido, expirado ou revogado; ou login incorreto | `{"message": "..."}` |
-| `403` | Perfil sem permissão para o recurso | `{"message": "..."}` |
-| `404` | Registro ou registro relacionado não encontrado | `{"message": "..."}` (vazio no `GET /{id}`) |
-| `409` | Regra de negócio violada (ex.: username já cadastrado) | `{"message": "..."}` |
+| `400` | Invalid request body | One message per field: `{"stage": "stage é obrigatório"}` |
+| `401` | Missing, invalid, expired or revoked token; or wrong login | `{"message": "..."}` |
+| `403` | Role not allowed to access the resource | `{"message": "..."}` |
+| `404` | Record or related record not found | `{"message": "..."}` (empty on `GET /{id}`) |
+| `409` | Business rule violated (e.g. username already taken) | `{"message": "..."}` |
 
-## Autenticação e segurança
+## Authentication and security
 
-A API não usa sessão nem cookie: a identidade de cada requisição vem do header
-`Authorization: Bearer <token>`. Os tokens são assinados em HS256 e as senhas
-são gravadas com BCrypt.
+The API uses no session or cookie: each request is identified by the
+`Authorization: Bearer <token>` header. Tokens are signed with HS256 and
+passwords are stored with BCrypt.
 
-### Endpoints de autenticação
+### Authentication endpoints
 
-| Método | Rota | Acesso | Descrição |
+| Method | Route | Access | Description |
 |---|---|---|---|
-| `POST` | `/api/auth/register` | público | Cria conta. O perfil é sempre `Estudante`, definido pelo servidor. |
-| `POST` | `/api/auth/login` | público | Recebe `username` (aceita username ou email) e `password`; devolve o token. |
-| `POST` | `/api/auth/logout` | autenticado | Invalida o token usado na requisição. |
-| `GET` | `/api/auth/me` | autenticado | Dados do usuário dono do token. |
+| `POST` | `/api/auth/register` | public | Creates an account. The role is always `Estudante`, set by the server. |
+| `POST` | `/api/auth/login` | public | Takes `username` (username or email) and `password`; returns the token. |
+| `POST` | `/api/auth/logout` | authenticated | Invalidates the token used in the request. |
+| `GET` | `/api/auth/me` | authenticated | Data of the user who owns the token. |
 
-Resposta do login:
+Login response:
 
 ```json
 {
@@ -317,106 +321,105 @@ Resposta do login:
 }
 ```
 
-### Proteção das rotas
+### Route protection
 
-Nenhuma rota `/api/**` responde sem token, exceto `login` e `register`.
+No `/api/**` route responds without a token, except `login` and `register`.
 
-| Rota | Estudante | Administrador |
+| Route | Student | Administrator |
 |---|---|---|
-| `GET` no catálogo (estados, cidades, endereços, instituições, vestibulares, áreas, matérias, tópicos, questões, alternativas, imagens) | leitura | leitura |
-| `POST`/`PUT`/`PATCH`/`DELETE` no catálogo | negado (403) | permitido |
-| `/api/mock-exams/**`, `/api/mock-exam-questions/**` | CRUD completo | CRUD completo |
-| `/api/users/**`, `/api/user-roles/**` | negado (403) | permitido |
+| `GET` on the catalog (states, cities, addresses, institutions, entrance exams, knowledge areas, subjects, topics, questions, answer options, images) | read | read |
+| `POST`/`PUT`/`PATCH`/`DELETE` on the catalog | denied (403) | allowed |
+| `/api/mock-exams/**`, `/api/mock-exam-questions/**` | full CRUD | full CRUD |
+| `/api/users/**`, `/api/user-roles/**` | denied (403) | allowed |
 
-As permissões vêm do perfil (`user_role`) do usuário. A descrição é
-normalizada em authority (`Administrador` vira `ROLE_ADMINISTRADOR`) e gravada
-no claim `roles` do token.
+Permissions come from the user's role (`user_role`). Its description is
+normalized into an authority (`Administrador` becomes `ROLE_ADMINISTRADOR`) and
+stored in the token's `roles` claim.
 
-### Configuração
+### Configuration
 
-| Propriedade | Descrição |
+| Property | Description |
 |---|---|
-| `security.jwt.secret` | Chave HS256, vinda de `JWT_SECRET` |
-| `security.jwt.issuer` | Emissor gravado e validado no token (`api-pontuo`) |
-| `security.jwt.expiration-minutes` | Validade do token, em minutos (padrão: 120) |
+| `security.jwt.secret` | HS256 key, taken from `JWT_SECRET` |
+| `security.jwt.issuer` | Issuer written to and validated in the token (`api-pontuo`) |
+| `security.jwt.expiration-minutes` | Token lifetime in minutes (default: 120) |
 
-### Como funciona o logout
+### How logout works
 
-O JWT é autocontido, então descartá-lo no cliente não o invalidaria no
-servidor. O logout registra o `jti` do token numa lista de revogados,
-consultada em toda requisição até o token expirar.
+A JWT is self-contained, so discarding it on the client would not invalidate
+it on the server. Logout stores the token's `jti` in a revocation list that is
+checked on every request until the token expires.
 
-Essa lista fica em memória: é perdida quando a aplicação reinicia e não é
-compartilhada entre instâncias. Para rodar em mais de um servidor, troque o
-`TokenRevocationService` por um armazenamento compartilhado, como Redis ou uma
-tabela no banco.
+This list is kept in memory: it is lost when the application restarts and is
+not shared between instances. To run on more than one server, replace
+`TokenRevocationService` with shared storage, such as Redis or a database
+table.
 
-## Testes
+## Tests
 
-Os testes são automatizados com JUnit, Mockito e MockMvc. Para rodar a suíte:
+Tests are automated with JUnit, Mockito and MockMvc. To run the suite:
 
 ```bash
 ./mvnw test
 ```
 
-| Tipo | O que cobre | Precisa de banco? |
+| Type | What it covers | Needs a database? |
 |---|---|---|
-| Unitários | Services, segurança (JWT, revogação), tratamento de erros e validação dos DTOs | Não |
-| Web (`@WebMvcTest`) | Permissões por perfil, fluxo de cadastro/login/logout e respostas dos controllers | Não |
-| Repositório (`@DataJpaTest`) | Consultas e restrições do banco | Sim |
-| Integração (`@SpringBootTest`) | Contexto completo da aplicação e regras de simulado | Sim |
+| Unit | Services, security (JWT, revocation), error handling and DTO validation | No |
+| Web (`@WebMvcTest`) | Role permissions, sign-up/login/logout flow and controller responses | No |
+| Repository (`@DataJpaTest`) | Database queries and constraints | Yes |
+| Integration (`@SpringBootTest`) | Full application context and mock exam rules | Yes |
 
-Os testes com banco usam o MariaDB configurado no `application.properties` e
-desfazem tudo o que gravam ao final de cada teste. Quando não há MariaDB em
-`localhost:3306`, eles são pulados em vez de falhar.
+Database tests use the MariaDB configured in `application.properties` and roll
+back everything they write at the end of each test. When there is no MariaDB on
+`localhost:3306`, they are skipped instead of failing.
 
-Alguns testes descrevem regras ainda não implementadas (marcados com
-`@Pendente`, na etapa "red" do TDD) e ficam desligados por padrão. Para
-executá-los:
+Some tests describe rules that are not implemented yet (annotated with
+`@Pendente`, the "red" step of TDD) and are disabled by default. To run them:
 
 ```bash
 ./mvnw test -Dpontuo.pendentes=true
 ```
 
-Quando uma regra for implementada e o teste passar, remova a anotação
-`@Pendente` dele.
+Once a rule is implemented and its test passes, remove the `@Pendente`
+annotation from it.
 
-## Integração contínua
+## Continuous integration
 
-O workflow [`.github/workflows/ci.yml`](.github/workflows/ci.yml) roda a cada
-push na `main` e em pull requests. Ele sobe um MariaDB vazio, aplica as
-migrations e executa `./mvnw -B verify`, incluindo os testes com banco.
+The [`.github/workflows/ci.yml`](.github/workflows/ci.yml) workflow runs on
+every push to `main` and on pull requests. It starts an empty MariaDB, applies
+the migrations and runs `./mvnw -B verify`, database tests included.
 
-## Estrutura do projeto
+## Project structure
 
 ```
 src/main/java/com/pontuo/api_pontuo
-├── config        # SecurityConfig: regras de acesso, JWT e BCrypt
-├── controller    # Endpoints REST
-├── dto           # Records de requisição e resposta, com validação
-├── entity        # Entidades JPA
-├── exception     # Tratamento global de erros
-├── repository    # Repositórios Spring Data
-├── security      # Emissão, validação e revogação de tokens
-└── service       # Regras de negócio
+├── config        # SecurityConfig: access rules, JWT and BCrypt
+├── controller    # REST endpoints
+├── dto           # Request and response records, with validation
+├── entity        # JPA entities
+├── exception     # Global error handling
+├── repository    # Spring Data repositories
+├── security      # Token issuing, validation and revocation
+└── service       # Business rules
 src/main/resources
 ├── application.properties
-└── db/migration  # Migrations do Flyway
+└── db/migration  # Flyway migrations
 src/test/java/com/pontuo/api_pontuo
-└── ...           # Testes, espelhando os pacotes acima, e utilitários em support/
+└── ...           # Tests mirroring the packages above, plus helpers in support/
 ```
 
-## Pontos ainda abertos
+## Known limitations
 
-- `MockExam` tem `user_id`, mas as rotas de simulado ainda não filtram por
-  dono: qualquer usuário autenticado pode ler e alterar o simulado de outro. A
-  proteção atual é por perfil, não por propriedade do registro.
-- Não há rate limiting nem bloqueio temporário após tentativas de login
-  falhas.
-- Não há refresh token: quando o token expira, é preciso fazer login de novo.
-- CORS não está configurado, o que é necessário antes de consumir a API por um
-  frontend em outra origem.
+- `MockExam` has a `user_id`, but the mock exam routes do not filter by owner
+  yet: any authenticated user can read and change another user's mock exam.
+  Protection is currently by role, not by record ownership.
+- There is no rate limiting or temporary lockout after failed login attempts.
+- There is no refresh token: when the token expires, the user must log in
+  again.
+- CORS is not configured, which is required before consuming the API from a
+  frontend on another origin.
 
-## Licença
+## License
 
-Distribuído sob a licença MIT. Veja o arquivo [LICENSE](LICENSE).
+Distributed under the MIT License. See [LICENSE](LICENSE).
