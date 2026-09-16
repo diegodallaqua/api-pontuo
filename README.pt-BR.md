@@ -22,6 +22,7 @@ A API é stateless, autenticada por JWT e separa o acesso em dois perfis:
 - [Testes](#testes)
 - [Integração contínua](#integração-contínua)
 - [Estrutura do projeto](#estrutura-do-projeto)
+- [Padrões de projeto](#padrões-de-projeto)
 - [Pontos ainda abertos](#pontos-ainda-abertos)
 - [Licença](#licença)
 
@@ -407,6 +408,31 @@ src/main/resources
 src/test/java/com/pontuo/api_pontuo
 └── ...           # Testes, espelhando os pacotes acima, e utilitários em support/
 ```
+
+## Padrões de projeto
+
+O projeto usa os mesmos padrões explorados no lab
+[Explorando Padrões de Projetos na Prática com Java](https://github.com/digitalinnovationone/lab-padroes-projeto-spring),
+da DIO. Cada pacote tem um `package-info.java` explicando o padrão que o
+sustenta, visível também no Javadoc gerado.
+
+| Padrão | Onde está | Como aparece |
+|---|---|---|
+| **Singleton** | `service`, `controller`, `security`, `config` | Todo componente (`@Service`, `@RestController`, `@Component`, `@Bean`) é um bean de escopo singleton: o contêiner cria uma instância e a injeta por construtor. Sem campo estático nem `getInstance()`, o que mantém as classes testáveis com mocks. |
+| **Repository** | [`repository`](src/main/java/com/pontuo/api_pontuo/repository) | Cada interface estende `JpaRepository` e expõe consultas em termos de domínio (`findByCityId`, `findByUsername`). O Spring Data gera a implementação em tempo de execução. |
+| **Facade** | [`controller`](src/main/java/com/pontuo/api_pontuo/controller) | Cada controller expõe uma rota simples e esconde do cliente o service, os repositórios, a validação e a conversão DTO ↔ entidade. Exemplo comentado: [`AddressController`](src/main/java/com/pontuo/api_pontuo/controller/AddressController.java). |
+| **Strategy** | [`security`](src/main/java/com/pontuo/api_pontuo/security) | Pontos de extensão do Spring Security definidos como interface: `AppUserDetailsService` (`UserDetailsService`), `RevokedTokenValidator` (`OAuth2TokenValidator<Jwt>`) e o `PasswordEncoder` escolhido em um único `@Bean`. Quem chama depende da interface, não da implementação. |
+
+Diferença em relação ao lab: lá o Strategy é aplicado também na camada de
+negócio (`ClienteService` + `ClienteServiceImpl`). Aqui cada domínio tem uma
+implementação só, e os controllers injetam a classe concreta do service. Se
+algum domínio passar a ter mais de uma variação de regra, o caminho é extrair a
+interface e mover a implementação atual para `service/impl`, sem mudar os
+controllers além do tipo injetado.
+
+O lab também usa uma Facade de integração externa (ViaCEP, via OpenFeign) para
+completar endereços pelo CEP. Esta API não consome serviços externos: os
+endereços já vêm cadastrados pelas migrations.
 
 ## Pontos ainda abertos
 

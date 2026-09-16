@@ -24,6 +24,7 @@ users.
 - [Tests](#tests)
 - [Continuous integration](#continuous-integration)
 - [Project structure](#project-structure)
+- [Design patterns](#design-patterns)
 - [Known limitations](#known-limitations)
 - [License](#license)
 
@@ -408,6 +409,31 @@ src/main/resources
 src/test/java/com/pontuo/api_pontuo
 └── ...           # Tests mirroring the packages above, plus helpers in support/
 ```
+
+## Design patterns
+
+The project uses the same patterns explored in DIO's
+[Explorando Padrões de Projetos na Prática com Java](https://github.com/digitalinnovationone/lab-padroes-projeto-spring)
+lab. Each package has a `package-info.java` describing the pattern behind it,
+which also shows up in the generated Javadoc.
+
+| Pattern | Where | How it shows up |
+|---|---|---|
+| **Singleton** | `service`, `controller`, `security`, `config` | Every component (`@Service`, `@RestController`, `@Component`, `@Bean`) is a singleton-scoped bean: the container creates one instance and injects it through the constructor. No static field and no `getInstance()`, which keeps the classes testable with mocks. |
+| **Repository** | [`repository`](src/main/java/com/pontuo/api_pontuo/repository) | Each interface extends `JpaRepository` and exposes queries in domain terms (`findByCityId`, `findByUsername`). Spring Data generates the implementation at runtime. |
+| **Facade** | [`controller`](src/main/java/com/pontuo/api_pontuo/controller) | Each controller exposes one simple route and hides the service, the repositories, request validation and DTO ↔ entity conversion from the client. Documented example: [`AddressController`](src/main/java/com/pontuo/api_pontuo/controller/AddressController.java). |
+| **Strategy** | [`security`](src/main/java/com/pontuo/api_pontuo/security) | Spring Security extension points defined as interfaces: `AppUserDetailsService` (`UserDetailsService`), `RevokedTokenValidator` (`OAuth2TokenValidator<Jwt>`) and the `PasswordEncoder` picked in a single `@Bean`. Callers depend on the interface, not on the implementation. |
+
+One difference from the lab: there, Strategy is also applied to the business
+layer (`ClienteService` + `ClienteServiceImpl`). Here each domain has a single
+implementation, and controllers inject the concrete service class. If a domain
+ever needs more than one variation of a rule, the move is to extract the
+interface and push the current implementation into `service/impl`, with no
+change to the controllers beyond the injected type.
+
+The lab also uses a facade over an external integration (ViaCEP, through
+OpenFeign) to fill addresses from a postal code. This API consumes no external
+services: addresses are already loaded by the migrations.
 
 ## Known limitations
 

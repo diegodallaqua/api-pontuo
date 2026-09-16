@@ -16,6 +16,13 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
+/**
+ * <b>Facade</b> do recurso de endereços: as cinco rotas abaixo escondem do
+ * cliente o {@link AddressService}, os repositórios de endereço e de cidade, a
+ * validação do corpo da requisição e a conversão entre DTO e entidade. É o
+ * controller exemplar do padrão — os demais seguem a mesma forma, descrita em
+ * {@code package-info.java}.
+ */
 @RestController
 @RequestMapping("/api/addresses")
 public class AddressController {

@@ -10,6 +10,13 @@ import org.springframework.stereotype.Service;
 import java.util.List;
 import java.util.Optional;
 
+/**
+ * Regras de endereço. Como todo {@code @Service}, é um bean de escopo
+ * singleton: uma única instância, criada pelo contêiner e injetada no
+ * controller pelo construtor (<b>Singleton</b> gerenciado pelo Spring). As
+ * dependências também chegam por construtor, o que permite substituí-las por
+ * mocks nos testes.
+ */
 @Service
 public class AddressService {
 
