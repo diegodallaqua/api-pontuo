@@ -34,18 +34,25 @@ users.
   5,571 cities come preloaded.
 - **Institutions and entrance exams**: exam boards (INEP, FUVEST, VUNESP,
   COMVEST, CEBRASPE and others) and their entrance exams by year and stage
-  (e.g. ENEM 2026, "1º Dia" and "2º Dia"). An entrance exam is unique by
+  (e.g. ENEM 2025, "1º Dia" and "2º Dia"). An entrance exam is unique by
   institution, year, name and stage.
 - **Content**: knowledge areas, subjects and topics, organized as a hierarchy
   (e.g. Natural Sciences › Biology › Genetics).
 - **Questions**: statement, explanation and difficulty from 1 to 3, linked to
   an entrance exam and classified by topic **or** by subject. Each question
   has answer options A to E, with no repeated letter and a single correct
-  option, and may have images.
-- **Mock exams**: students create mock exams with number of questions, time
-  limit, start and finish times, correct answers and accuracy. A question
-  cannot appear twice in the same mock exam, and the selected option must
-  belong to the answered question.
+  option, and may have images. The listing is paginated and its filters
+  combine; `GET /api/questions/draw` draws questions to assemble a mock exam
+  on the server. The correct option is never sent to students.
+- **Mock exams**: students create mock exams with a number of questions and a
+  time limit, then start, answer and finish them. On finish the server grades
+  the exam, computes correct answers and accuracy, and locks it. A question
+  cannot appear twice in the same mock exam, a mock exam cannot hold more
+  questions than `numQuestions`, and the selected option must belong to the
+  answered question. Each student only sees their own mock exams.
+- **Performance**: overview, accuracy by knowledge area, subject, topic and
+  difficulty, weakest topics and progress over time, computed from finished
+  mock exams.
 - **Users and access**: public sign-up (always as a student), login with
   username or email, logout that invalidates the token, and user and role
   management by administrators.
@@ -139,6 +146,7 @@ Fill in `.env`:
 | `DB_USERNAME` | User created in step 3 |
 | `DB_PASSWORD` | That user's password |
 | `JWT_SECRET` | Token signing secret, at least 32 characters |
+| `CORS_ALLOWED_ORIGINS` | Optional. Origins allowed to call the API from a browser, comma separated. Default: `http://localhost:*,http://127.0.0.1:*` |
 
 To generate a random `JWT_SECRET`:
 
@@ -167,7 +175,7 @@ On Windows: `.\mvnw.cmd spring-boot:run`.
 
 On the first run Maven downloads the dependencies and Flyway creates the
 database structure. The log should show
-`Successfully applied 6 migrations to schema db_pontuo`. The API is available
+`Successfully applied 9 migrations to schema db_pontuo`. The API is available
 at `http://localhost:8080`.
 
 To build and run the jar:
@@ -228,6 +236,9 @@ Hibernate validates the entities (`ddl-auto=validate`).
 | `V4__incluir_etapa_na_chave_unica_de_vestibular.sql` | Adds the stage to the unique key of `entrance_exam` |
 | `V5__inserir_etapas_de_vestibular.sql` | Adds the missing stages (ENEM "2º Dia", second phases and PAS stages) |
 | `V6__tornar_etapa_de_vestibular_obrigatoria.sql` | Makes `entrance_exam.stage` required |
+| `V7__adicionar_estrutura_de_desempenho.sql` | Adds `mock_exam_has_question.is_correct`, `mock_exam.answered_count` and the `mock_exam_subject_result` table |
+| `V8__calcular_desempenho_dos_simulados_existentes.sql` | Freezes the grading of answers already given and recomputes, on the server, the results of mock exams already finished |
+| `V9__remover_redundancias_e_reforcar_integridade.sql` | Drops two redundant indexes and the `mock_exam_subject_result` table (the report is now computed); adds the topic-OR-subject `CHECK` on `question` and the composite foreign key that ensures the selected option belongs to the linked question |
 
 Rules for changing the database:
 
@@ -274,27 +285,133 @@ Every resource follows the same CRUD pattern:
 | Knowledge areas | `/api/knowledge-areas` | — |
 | Subjects | `/api/subjects` | `knowledgeAreaId` |
 | Topics | `/api/topics` | `subjectId` |
-| Questions | `/api/questions` | `entranceExamId`, `topicId`, `subjectId` |
+| Questions | `/api/questions` | `entranceExamId`, `knowledgeAreaId`, `subjectId`, `topicId`, `page`, `size` |
 | Answer options | `/api/answer-options` | `questionId` |
 | Question images | `/api/question-images` | `questionId` |
-| Mock exams | `/api/mock-exams` | `userId` |
+| Mock exams | `/api/mock-exams` | `userId` (students only list their own) |
 | Mock exam questions | `/api/mock-exam-questions` | `mockExamId`, `questionId` |
 | Users | `/api/users` | `userRoleId` |
 | Roles | `/api/user-roles` | — |
 
 When more than one filter is sent, only the first one in the table's order
-applies. For example, in `/api/questions?entranceExamId=1&topicId=2` only the
-entrance exam is used.
+applies — except on `/api/questions`, where every filter is applied together.
+
+### Questions: paging and drawing
+
+`GET /api/questions` is paginated and every filter it takes is combined with
+the others, so `?entranceExamId=1&knowledgeAreaId=2` returns the questions of
+that entrance exam in that knowledge area. Because a question is classified by
+topic **or** by subject, `subjectId` and `knowledgeAreaId` match through both
+paths: the question's own subject (or area) and the subject (or area) of its
+topic.
+
+| Parameter | Default | Notes |
+|---|---|---|
+| `page` | `0` | Page number; negative is `400` |
+| `size` | `20` | Page size, from 1 to 100; outside that range is `400` |
+
+Results are ordered by `id`, so a record never shows up on two pages. The
+response is an envelope, not a bare list:
+
+```json
+{
+  "content": [ { "id": 1, "statement": "..." } ],
+  "page": 0,
+  "size": 20,
+  "totalElements": 137,
+  "totalPages": 7,
+  "last": false
+}
+```
+
+`GET /api/questions/draw` takes the same filters plus `size` (default 10, up to
+100) and returns a shuffled list of questions — the mock exam is assembled on
+the server, not by downloading the catalog to the client. When fewer questions
+match than requested, it returns the ones that match.
+
+### The correct option is not sent to students
+
+`rightAnswer` is only filled in for administrators, who need it to review the
+catalog; for students the field is left out of the JSON entirely, so the answer
+key cannot reach the client before the question is answered. After an option is
+marked, `/api/mock-exam-questions` returns `correct` (`true` or `false`, and
+`null` while the question is unanswered), which is the correction computed on
+the server. The grading is frozen when the answer is given (`is_correct`): if
+an administrator fixes the answer key later, the student's history does not
+change.
+
+### Mock exams: lifecycle
+
+| Step | Route | What happens |
+|---|---|---|
+| Create | `POST /api/mock-exams` | Body: `name`, `numQuestions`, `maxTime` and an optional `userId`. Without `userId`, the owner is the token's user; only administrators create mock exams for someone else. |
+| Assemble | `POST /api/mock-exam-questions` | Links questions, up to `numQuestions`. Allowed before the start. |
+| Start | `POST /api/mock-exams/{id}/start` | Sets `startedAt`. Questions can only be answered from here on. |
+| Answer | `POST` or `PUT /api/mock-exam-questions` | Body: `mockExamId`, `questionId`, `answerOptionId`. The server records `answeredAt` and the grading; a null `answerOptionId` clears the answer. |
+| Finish | `POST /api/mock-exams/{id}/finish` | Computes and stores `answeredCount`, `correctCount` and `accuracy`, locks the mock exam and returns the report. |
+| Read the report | `GET /api/mock-exams/{id}/result` | Mock exam and accuracy per subject, computed from the answers (empty list before finishing). Each subject has the same format as `/api/performance/me/subjects`. |
+
+Rules:
+
+- `accuracy` is `correctCount / numQuestions`, as a percentage with two
+  decimals: a blank question, or one that was never linked, counts as wrong.
+  In the per-subject report the total is the number of linked questions of
+  that subject.
+- A question's subject is its topic's subject or, without a topic, the
+  question's own subject. It is a single rule, computed on the fly from the
+  current classification: if an administrator reclassifies a question, the
+  report, the per-subject analysis and the evolution change together. The
+  database ensures a question has a topic OR a subject (`CHECK`).
+- Once finished, the mock exam and its answers do not change: `PUT` and
+  `DELETE` on its questions and `PUT` on the mock exam return `409`. Deleting
+  the mock exam is still allowed and removes its answers too.
+- The database ensures the selected option belongs to the answered question.
+  For the same reason, an option already selected in a mock exam cannot be
+  moved to another question (`409`).
+- `startedAt`, `finishedAt`, `correctCount` and `accuracy` are no longer
+  accepted in the body; if sent, they are ignored.
+- Students only read and change their own mock exams and answers (`403` for
+  someone else's). Administrators access all of them.
+
+### Student performance
+
+Computed from finished mock exams only. Every route exists under
+`/api/performance/me/...` (the token's owner) and
+`/api/performance/users/{userId}/...` (administrators only).
+
+| Route | Returns | Filters besides `from` and `to` |
+|---|---|---|
+| `/overview` | Finished mock exams, questions, answered, correct, accuracy and average duration in minutes | — |
+| `/knowledge-areas` | Accuracy by knowledge area | `entranceExamId` |
+| `/subjects` | Accuracy by subject | `entranceExamId`, `knowledgeAreaId` |
+| `/topics` | Accuracy by topic (only questions classified by topic) | `entranceExamId`, `subjectId` |
+| `/difficulty` | Accuracy by difficulty (`id` is the level, 1 to 3) | `entranceExamId` |
+| `/weak-topics` | Topics with the lowest accuracy | `entranceExamId`, `minQuestions` (default 5), `limit` (default 5, up to 50) |
+| `/evolution` | Result of each mock exam in chronological order; with `subjectId`, the result in that subject | `subjectId` |
+
+`from` and `to` are ISO dates (`2026-09-01`), inclusive, applied to the finish
+date. In the overview and the overall evolution, accuracy is
+`correct / numQuestions`; in the breakdowns it is `correct / linked questions`
+of the group, since `numQuestions` is not split by subject.
+
+Example of `GET /api/performance/me/subjects`:
+
+```json
+[
+  { "id": 5, "description": "Biologia", "questions": 12, "answered": 11, "correct": 8, "accuracy": 66.67 },
+  { "id": 7, "description": "Química", "questions": 8, "answered": 8, "correct": 3, "accuracy": 37.50 }
+]
+```
 
 Error responses (messages are returned in Portuguese):
 
 | Status | When | Body |
 |---|---|---|
-| `400` | Invalid request body | One message per field: `{"stage": "stage é obrigatório"}` |
+| `400` | Invalid request body or query parameter | One message per field or parameter: `{"stage": "stage é obrigatório"}` |
 | `401` | Missing, invalid, expired or revoked token; or wrong login | `{"message": "..."}` |
-| `403` | Role not allowed to access the resource | `{"message": "..."}` |
+| `403` | Role not allowed to access the resource, or record owned by another user | `{"message": "..."}` |
 | `404` | Record or related record not found | `{"message": "..."}` (empty on `GET /{id}`) |
-| `409` | Business rule violated (e.g. username already taken) | `{"message": "..."}` |
+| `409` | Business rule violated (e.g. username already taken, mock exam already finished) or record still in use (e.g. deleting a question that is in a mock exam) | `{"message": "..."}` |
 
 ## Authentication and security
 
@@ -330,7 +447,9 @@ No `/api/**` route responds without a token, except `login` and `register`.
 |---|---|---|
 | `GET` on the catalog (states, cities, addresses, institutions, entrance exams, knowledge areas, subjects, topics, questions, answer options, images) | read | read |
 | `POST`/`PUT`/`PATCH`/`DELETE` on the catalog | denied (403) | allowed |
-| `/api/mock-exams/**`, `/api/mock-exam-questions/**` | full CRUD | full CRUD |
+| `/api/mock-exams/**`, `/api/mock-exam-questions/**` | CRUD on their own mock exams (403 on others') | CRUD on all |
+| `/api/performance/me/**` | own performance | own performance |
+| `/api/performance/users/**` | denied (403) | any user's performance |
 | `/api/users/**`, `/api/user-roles/**` | denied (403) | allowed |
 
 Permissions come from the user's role (`user_role`). Its description is
@@ -344,6 +463,21 @@ stored in the token's `roles` claim.
 | `security.jwt.secret` | HS256 key, taken from `JWT_SECRET` |
 | `security.jwt.issuer` | Issuer written to and validated in the token (`api-pontuo`) |
 | `security.jwt.expiration-minutes` | Token lifetime in minutes (default: 120) |
+| `security.cors.allowed-origins` | Origins allowed by CORS, taken from `CORS_ALLOWED_ORIGINS` |
+
+### CORS
+
+A browser blocks calls from a frontend on another origin unless the API allows
+it, so the allowed origins are configured in `security.cors.allowed-origins`.
+The default (`http://localhost:*,http://127.0.0.1:*`) covers Flutter Web in
+debug mode, which uses a random port; in production point
+`CORS_ALLOWED_ORIGINS` at the app's domain.
+
+Allowed methods are `GET`, `POST`, `PUT`, `PATCH`, `DELETE` and `OPTIONS`, and
+allowed headers are `Authorization`, `Content-Type` and `Accept`. Preflight
+(`OPTIONS`) is answered before the authorization rules, so it needs no token.
+Credentials are not allowed, because the identity comes from the
+`Authorization` header and not from a cookie.
 
 ### How logout works
 
@@ -395,7 +529,7 @@ the migrations and runs `./mvnw -B verify`, database tests included.
 
 ```
 src/main/java/com/pontuo/api_pontuo
-├── config        # SecurityConfig: access rules, JWT and BCrypt
+├── config        # SecurityConfig: access rules, CORS, JWT and BCrypt
 ├── controller    # REST endpoints
 ├── dto           # Request and response records, with validation
 ├── entity        # JPA entities
@@ -437,14 +571,15 @@ services: addresses are already loaded by the migrations.
 
 ## Known limitations
 
-- `MockExam` has a `user_id`, but the mock exam routes do not filter by owner
-  yet: any authenticated user can read and change another user's mock exam.
-  Protection is currently by role, not by record ownership.
+- `maxTime` is informational: the API does not close the mock exam when time
+  runs out.
+- Time spent on each question is not recorded yet; duration only exists for
+  the whole mock exam.
 - There is no rate limiting or temporary lockout after failed login attempts.
 - There is no refresh token: when the token expires, the user must log in
   again.
-- CORS is not configured, which is required before consuming the API from a
-  frontend on another origin.
+- Only `/api/questions` is paginated; the other listings still return every
+  record.
 
 ## License
 

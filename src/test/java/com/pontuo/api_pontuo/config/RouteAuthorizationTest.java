@@ -3,6 +3,7 @@ package com.pontuo.api_pontuo.config;
 import com.pontuo.api_pontuo.controller.AuthController;
 import com.pontuo.api_pontuo.controller.MockExamController;
 import com.pontuo.api_pontuo.controller.MockExamHasQuestionController;
+import com.pontuo.api_pontuo.controller.PerformanceController;
 import com.pontuo.api_pontuo.controller.QuestionController;
 import com.pontuo.api_pontuo.controller.StateController;
 import com.pontuo.api_pontuo.controller.UserController;
@@ -13,6 +14,7 @@ import com.pontuo.api_pontuo.entity.State;
 import com.pontuo.api_pontuo.security.JwtService;
 import com.pontuo.api_pontuo.service.MockExamHasQuestionService;
 import com.pontuo.api_pontuo.service.MockExamService;
+import com.pontuo.api_pontuo.service.PerformanceService;
 import com.pontuo.api_pontuo.service.QuestionService;
 import com.pontuo.api_pontuo.service.StateService;
 import com.pontuo.api_pontuo.service.UserRoleService;
@@ -23,13 +25,17 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
+import org.springframework.data.domain.PageImpl;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.JwtRequestPostProcessor;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
+
+import java.util.List;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
@@ -38,6 +44,7 @@ import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.options;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
@@ -51,6 +58,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
         QuestionController.class,
         MockExamController.class,
         MockExamHasQuestionController.class,
+        PerformanceController.class,
         UserController.class,
         UserRoleController.class
 })
@@ -92,6 +100,9 @@ class RouteAuthorizationTest {
     @MockitoBean
     private MockExamHasQuestionService mockExamHasQuestionService;
 
+    @MockitoBean
+    private PerformanceService performanceService;
+
     private static JwtRequestPostProcessor estudante() {
         return jwt().jwt(token -> token.subject("maria"))
                 .authorities(new SimpleGrantedAuthority("ROLE_ESTUDANTE"));
@@ -131,6 +142,8 @@ class RouteAuthorizationTest {
         @Test
         @DisplayName("lê o catálogo")
         void deveLerCatalogo() throws Exception {
+            when(questionService.search(any(), any())).thenReturn(new PageImpl<>(List.of()));
+
             mockMvc.perform(get("/api/questions").with(estudante()))
                     .andExpect(status().isOk());
         }
@@ -140,7 +153,7 @@ class RouteAuthorizationTest {
         void deveGerenciarSimulados() throws Exception {
             when(mockExamService.create(any(MockExam.class), anyLong()))
                     .thenReturn(new MockExam("Simulado ENEM", (short) 10, (short) 90));
-            when(mockExamHasQuestionService.update(anyLong(), anyLong(), anyLong(), isNull(), isNull()))
+            when(mockExamHasQuestionService.update(anyLong(), anyLong(), anyLong(), isNull()))
                     .thenReturn(new MockExamHasQuestion());
 
             mockMvc.perform(post("/api/mock-exams").with(estudante())
@@ -162,6 +175,22 @@ class RouteAuthorizationTest {
                     .andExpect(jsonPath("$.message")
                             .value("Acesso negado: seu perfil não tem permissão para este recurso."));
             mockMvc.perform(delete("/api/states/1").with(estudante()))
+                    .andExpect(status().isForbidden());
+        }
+
+        @Test
+        @DisplayName("consulta o próprio desempenho")
+        void deveConsultarOProprioDesempenho() throws Exception {
+            mockMvc.perform(get("/api/performance/me/overview").with(estudante()))
+                    .andExpect(status().isOk());
+            mockMvc.perform(get("/api/performance/me/subjects").with(estudante()))
+                    .andExpect(status().isOk());
+        }
+
+        @Test
+        @DisplayName("não consulta o desempenho de outro usuário")
+        void naoDeveConsultarDesempenhoDeOutro() throws Exception {
+            mockMvc.perform(get("/api/performance/users/8/overview").with(estudante()))
                     .andExpect(status().isForbidden());
         }
 
@@ -192,6 +221,54 @@ class RouteAuthorizationTest {
         void deveGerenciarUsuarios() throws Exception {
             mockMvc.perform(get("/api/users").with(administrador())).andExpect(status().isOk());
             mockMvc.perform(delete("/api/user-roles/3").with(administrador())).andExpect(status().isNoContent());
+        }
+
+        @Test
+        @DisplayName("consulta o desempenho de qualquer usuário")
+        void deveConsultarDesempenhoDeOutro() throws Exception {
+            mockMvc.perform(get("/api/performance/users/8/overview").with(administrador()))
+                    .andExpect(status().isOk());
+        }
+    }
+
+    @Nested
+    @DisplayName("CORS")
+    class Cors {
+
+        private static final String ORIGEM_LIBERADA = "http://localhost:53421";
+
+        @Test
+        @DisplayName("preflight passa sem token e libera a origem do frontend")
+        void deveResponderPreflightSemToken() throws Exception {
+            mockMvc.perform(options("/api/questions")
+                            .header(HttpHeaders.ORIGIN, ORIGEM_LIBERADA)
+                            .header(HttpHeaders.ACCESS_CONTROL_REQUEST_METHOD, HttpMethod.GET.name())
+                            .header(HttpHeaders.ACCESS_CONTROL_REQUEST_HEADERS, HttpHeaders.AUTHORIZATION))
+                    .andExpect(status().isOk())
+                    .andExpect(header().string(HttpHeaders.ACCESS_CONTROL_ALLOW_ORIGIN, ORIGEM_LIBERADA))
+                    .andExpect(header().string(HttpHeaders.ACCESS_CONTROL_ALLOW_HEADERS,
+                            HttpHeaders.AUTHORIZATION));
+        }
+
+        @Test
+        @DisplayName("resposta autenticada também vem com a origem liberada")
+        void deveLiberarOrigemNaResposta() throws Exception {
+            when(questionService.search(any(), any())).thenReturn(new PageImpl<>(List.of()));
+
+            mockMvc.perform(get("/api/questions").header(HttpHeaders.ORIGIN, ORIGEM_LIBERADA)
+                            .with(estudante()))
+                    .andExpect(status().isOk())
+                    .andExpect(header().string(HttpHeaders.ACCESS_CONTROL_ALLOW_ORIGIN, ORIGEM_LIBERADA));
+        }
+
+        @Test
+        @DisplayName("origem de fora da lista é recusada no preflight")
+        void deveRecusarOutraOrigem() throws Exception {
+            mockMvc.perform(options("/api/questions")
+                            .header(HttpHeaders.ORIGIN, "http://site-de-terceiro.example")
+                            .header(HttpHeaders.ACCESS_CONTROL_REQUEST_METHOD, HttpMethod.GET.name()))
+                    .andExpect(status().isForbidden())
+                    .andExpect(header().doesNotExist(HttpHeaders.ACCESS_CONTROL_ALLOW_ORIGIN));
         }
     }
 }

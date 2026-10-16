@@ -21,6 +21,7 @@ import com.pontuo.api_pontuo.entity.Question;
 import com.pontuo.api_pontuo.entity.State;
 import com.pontuo.api_pontuo.entity.Subject;
 import com.pontuo.api_pontuo.entity.Topic;
+import com.pontuo.api_pontuo.security.Roles;
 import com.pontuo.api_pontuo.service.AnswerOptionService;
 
 import jakarta.validation.Valid;
@@ -80,12 +81,17 @@ public class AnswerOptionController {
         service.delete(id);
     }
 
+    /**
+     * O gabarito só vai para o administrador. Para o estudante o campo sai
+     * nulo — e o Jackson o omite — senão a alternativa correta chegaria junto
+     * com a questão, antes de ele responder.
+     */
     private AnswerOptionResponseDTO toResponseDTO(AnswerOption entity) {
         return new AnswerOptionResponseDTO(
                 entity.getId(),
                 entity.getLetter(),
                 entity.getText(),
-                entity.isRightAnswer(),
+                Roles.isAdministrador() ? entity.isRightAnswer() : null,
                 toQuestionResponseDTO(entity.getQuestion()));
     }
 

@@ -5,7 +5,6 @@ import com.pontuo.api_pontuo.entity.Question;
 import com.pontuo.api_pontuo.entity.User;
 import com.pontuo.api_pontuo.repository.DatabaseFixtures;
 import com.pontuo.api_pontuo.repository.MockExamRepository;
-import com.pontuo.api_pontuo.support.Pendente;
 import com.pontuo.api_pontuo.support.RequiresDatabase;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -38,8 +37,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @Transactional
 @Import(DatabaseFixtures.class)
 @RequiresDatabase
-@DisplayName("Simulados: regras pendentes do README")
-class MockExamPendingRulesTest {
+@DisplayName("Simulados: propriedade e limite de questões")
+class MockExamRulesTest {
 
     @Autowired
     private MockMvc mockMvc;
@@ -96,7 +95,6 @@ class MockExamPendingRulesTest {
         }
 
         @Test
-        @Pendente("filtrar GET /api/mock-exams pelo usuário do token")
         @DisplayName("a listagem do estudante traz só os simulados dele")
         void deveListarSoOsPropriosSimulados() throws Exception {
             mockMvc.perform(get("/api/mock-exams").with(comoAluno(alunoA)))
@@ -106,7 +104,6 @@ class MockExamPendingRulesTest {
         }
 
         @Test
-        @Pendente("verificar o dono em GET /api/mock-exams/{id}")
         @DisplayName("estudante não lê o simulado de outro")
         void naoDeveLerSimuladoDeOutro() throws Exception {
             mockMvc.perform(get("/api/mock-exams/{id}", simuladoDeB.getId()).with(comoAluno(alunoA)))
@@ -114,7 +111,6 @@ class MockExamPendingRulesTest {
         }
 
         @Test
-        @Pendente("verificar o dono em PUT /api/mock-exams/{id}")
         @DisplayName("estudante não altera o simulado de outro")
         void naoDeveAlterarSimuladoDeOutro() throws Exception {
             mockMvc.perform(put("/api/mock-exams/{id}", simuladoDeB.getId()).with(comoAluno(alunoA))
@@ -125,7 +121,6 @@ class MockExamPendingRulesTest {
         }
 
         @Test
-        @Pendente("verificar o dono em DELETE /api/mock-exams/{id}")
         @DisplayName("estudante não remove o simulado de outro")
         void naoDeveRemoverSimuladoDeOutro() throws Exception {
             mockMvc.perform(delete("/api/mock-exams/{id}", simuladoDeB.getId()).with(comoAluno(alunoA)))
@@ -135,7 +130,6 @@ class MockExamPendingRulesTest {
         }
 
         @Test
-        @Pendente("impedir que o estudante informe o userId de outra pessoa")
         @DisplayName("estudante não cria simulado em nome de outro")
         void naoDeveCriarSimuladoEmNomeDeOutro() throws Exception {
             mockMvc.perform(post("/api/mock-exams").with(comoAluno(alunoA))
@@ -153,7 +147,6 @@ class MockExamPendingRulesTest {
         }
 
         @Test
-        @Pendente("limitar os vínculos de mock_exam_has_question a numQuestions (se a regra for desejada)")
         @DisplayName("recusa vincular mais questões do que numQuestions")
         void deveRecusarQuestaoAlemDoLimite() throws Exception {
             MockExam umaQuestao = fixtures.simulado("Simulado de uma questão", 1, alunoA);

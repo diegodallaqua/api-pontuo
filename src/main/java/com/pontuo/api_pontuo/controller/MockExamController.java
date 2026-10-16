@@ -2,6 +2,7 @@ package com.pontuo.api_pontuo.controller;
 
 import com.pontuo.api_pontuo.dto.MockExamRequestDTO;
 import com.pontuo.api_pontuo.dto.MockExamResponseDTO;
+import com.pontuo.api_pontuo.dto.MockExamResultResponseDTO;
 import com.pontuo.api_pontuo.dto.UserResponseDTO;
 import com.pontuo.api_pontuo.dto.UserRoleResponseDTO;
 import com.pontuo.api_pontuo.entity.MockExam;
@@ -66,6 +67,29 @@ public class MockExamController {
         service.delete(id);
     }
 
+    /** Registra o início. A partir daqui as questões podem ser respondidas. */
+    @PostMapping("/{id}/start")
+    public MockExamResponseDTO start(@PathVariable Long id) {
+        return toResponseDTO(service.start(id));
+    }
+
+    /** Corrige, trava o simulado e devolve o boletim. */
+    @PostMapping("/{id}/finish")
+    public MockExamResultResponseDTO finish(@PathVariable Long id) {
+        MockExam finished = service.finish(id);
+        return new MockExamResultResponseDTO(toResponseDTO(finished), service.findSubjectResults(id));
+    }
+
+    /** Boletim do simulado; a lista de matérias fica vazia até a finalização. */
+    @GetMapping("/{id}/result")
+    public ResponseEntity<MockExamResultResponseDTO> result(@PathVariable Long id) {
+        return service.findById(id)
+                .map(mockExam -> new MockExamResultResponseDTO(
+                        toResponseDTO(mockExam), service.findSubjectResults(id)))
+                .map(ResponseEntity::ok)
+                .orElseGet(() -> ResponseEntity.notFound().build());
+    }
+
     private MockExamResponseDTO toResponseDTO(MockExam entity) {
         return new MockExamResponseDTO(
                 entity.getId(),
@@ -75,6 +99,7 @@ public class MockExamController {
                 entity.getCreatedAt(),
                 entity.getStartedAt(),
                 entity.getFinishedAt(),
+                entity.getAnsweredCount(),
                 entity.getCorrectCount(),
                 entity.getAccuracy(),
                 toUserResponseDTO(entity.getUser()));
@@ -101,14 +126,9 @@ public class MockExamController {
     }
 
     private MockExam toEntity(MockExamRequestDTO dto) {
-        MockExam mockExam = new MockExam(
+        return new MockExam(
                 dto.name(),
                 dto.numQuestions(),
                 dto.maxTime());
-        mockExam.setStartedAt(dto.startedAt());
-        mockExam.setFinishedAt(dto.finishedAt());
-        mockExam.setCorrectCount(dto.correctCount());
-        mockExam.setAccuracy(dto.accuracy());
-        return mockExam;
     }
 }

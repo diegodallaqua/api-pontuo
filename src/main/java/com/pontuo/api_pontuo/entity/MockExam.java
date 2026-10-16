@@ -40,8 +40,12 @@ public class MockExam {
     @Column(name = "finished_at")
     private LocalDateTime finishedAt;
 
+    // Calculados pelo servidor na finalização; nulos até lá.
+    @Column(name = "answered_count", columnDefinition = "SMALLINT")
+    private Short answeredCount;
+
     @Column(name = "correct_count", columnDefinition = "SMALLINT")
-    private short correctCount;
+    private Short correctCount;
 
     @Column(name = "accuracy", precision = 5, scale = 2)
     private BigDecimal accuracy;
@@ -129,11 +133,19 @@ public class MockExam {
         this.finishedAt = finishedAt;
     }
 
-    public short getCorrectCount() {
+    public Short getAnsweredCount() {
+        return answeredCount;
+    }
+
+    public void setAnsweredCount(Short answeredCount) {
+        this.answeredCount = answeredCount;
+    }
+
+    public Short getCorrectCount() {
         return correctCount;
     }
 
-    public void setCorrectCount(short correctCount) {
+    public void setCorrectCount(Short correctCount) {
         this.correctCount = correctCount;
     }
 
@@ -143,6 +155,14 @@ public class MockExam {
 
     public void setAccuracy(BigDecimal accuracy) {
         this.accuracy = accuracy;
+    }
+
+    public boolean isStarted() {
+        return startedAt != null;
+    }
+
+    public boolean isFinished() {
+        return finishedAt != null;
     }
 
     public User getUser() {

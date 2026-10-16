@@ -44,10 +44,10 @@ class EntranceExamRepositoryTest {
     }
 
     @Test
-    @DisplayName("migrations cadastram as duas etapas do ENEM 2026")
+    @DisplayName("migrations cadastram as duas etapas do ENEM 2025")
     void deveTerAsDuasEtapasDoEnem() {
         Set<String> etapas = repository.findByInstitutionId(INEP_ID).stream()
-                .filter(exame -> exame.getName().equals("ENEM") && exame.getYear() == 2026)
+                .filter(exame -> exame.getName().equals("ENEM") && exame.getYear() == 2025)
                 .map(EntranceExam::getStage)
                 .collect(Collectors.toSet());
 

@@ -32,18 +32,25 @@ A API é stateless, autenticada por JWT e separa o acesso em dois perfis:
   cidades do Brasil já vêm cadastrados.
 - **Instituições e vestibulares**: bancas organizadoras (INEP, FUVEST, VUNESP,
   COMVEST, CEBRASPE, entre outras) e seus vestibulares por ano e etapa
-  (ex.: ENEM 2026, 1º Dia e 2º Dia). Um vestibular é único pela combinação de
+  (ex.: ENEM 2025, 1º Dia e 2º Dia). Um vestibular é único pela combinação de
   instituição, ano, nome e etapa.
 - **Conteúdo**: áreas do conhecimento, matérias e tópicos, organizados em
   hierarquia (ex.: Ciências da Natureza › Biologia › Genética).
 - **Questões**: enunciado, explicação e dificuldade de 1 a 3, vinculadas a um
   vestibular e classificadas por tópico **ou** por matéria. Cada questão tem
   alternativas de A a E, sem letra repetida e com uma única alternativa
-  correta, e pode ter imagens.
-- **Simulados**: o estudante cria simulados com número de questões, tempo
-  máximo, horários de início e fim, acertos e aproveitamento. Uma questão não
-  se repete no mesmo simulado, e a alternativa marcada precisa pertencer à
-  questão respondida.
+  correta, e pode ter imagens. A listagem é paginada e os filtros se combinam;
+  `GET /api/questions/draw` sorteia questões para montar o simulado no
+  servidor. O gabarito nunca vai para o estudante.
+- **Simulados**: o estudante cria simulados com número de questões e tempo
+  máximo, inicia, responde e finaliza. Na finalização o servidor corrige,
+  calcula acertos e aproveitamento e trava o simulado. Uma questão não se
+  repete no mesmo simulado, o simulado não recebe mais questões do que
+  `numQuestions` e a alternativa marcada precisa pertencer à questão
+  respondida. Cada estudante só enxerga os próprios simulados.
+- **Desempenho**: resumo, aproveitamento por área do conhecimento, matéria,
+  tópico e dificuldade, tópicos mais fracos e evolução simulado a simulado,
+  calculados sobre os simulados finalizados.
 - **Usuários e acesso**: cadastro público (sempre como Estudante), login por
   username ou email, logout que invalida o token e gestão de usuários e
   perfis pelo administrador.
@@ -137,6 +144,7 @@ Preencha o `.env`:
 | `DB_USERNAME` | Usuário criado no passo 3 |
 | `DB_PASSWORD` | Senha desse usuário |
 | `JWT_SECRET` | Segredo de assinatura dos tokens, com no mínimo 32 caracteres |
+| `CORS_ALLOWED_ORIGINS` | Opcional. Origens liberadas para chamar a API pelo navegador, separadas por vírgula. Padrão: `http://localhost:*,http://127.0.0.1:*` |
 
 Para gerar um `JWT_SECRET` aleatório:
 
@@ -165,7 +173,7 @@ No Windows: `.\mvnw.cmd spring-boot:run`.
 
 Na primeira execução o Maven baixa as dependências e o Flyway cria a estrutura
 do banco. O log deve mostrar
-`Successfully applied 6 migrations to schema db_pontuo`. A API fica
+`Successfully applied 9 migrations to schema db_pontuo`. A API fica
 disponível em `http://localhost:8080`.
 
 Para gerar e executar o jar:
@@ -226,6 +234,9 @@ Hibernate validar as entidades (`ddl-auto=validate`).
 | `V4__incluir_etapa_na_chave_unica_de_vestibular.sql` | Inclui a etapa na chave única de `entrance_exam` |
 | `V5__inserir_etapas_de_vestibular.sql` | Cadastra as etapas que faltavam (ENEM 2º Dia, 2ª fases e etapas do PAS) |
 | `V6__tornar_etapa_de_vestibular_obrigatoria.sql` | Torna `entrance_exam.stage` obrigatória |
+| `V7__adicionar_estrutura_de_desempenho.sql` | Adiciona `mock_exam_has_question.is_correct`, `mock_exam.answered_count` e a tabela `mock_exam_subject_result` |
+| `V8__calcular_desempenho_dos_simulados_existentes.sql` | Congela a correção das respostas já dadas e recalcula no servidor os resultados dos simulados já finalizados |
+| `V9__remover_redundancias_e_reforcar_integridade.sql` | Remove dois índices redundantes e a tabela `mock_exam_subject_result` (o boletim passa a ser calculado); adiciona o `CHECK` de tópico OU matéria em `question` e a chave estrangeira composta que garante que a alternativa marcada é da questão do vínculo |
 
 Regras para alterar o banco:
 
@@ -272,27 +283,131 @@ Todos os recursos seguem o mesmo padrão CRUD:
 | Áreas do conhecimento | `/api/knowledge-areas` | — |
 | Matérias | `/api/subjects` | `knowledgeAreaId` |
 | Tópicos | `/api/topics` | `subjectId` |
-| Questões | `/api/questions` | `entranceExamId`, `topicId`, `subjectId` |
+| Questões | `/api/questions` | `entranceExamId`, `knowledgeAreaId`, `subjectId`, `topicId`, `page`, `size` |
 | Alternativas | `/api/answer-options` | `questionId` |
 | Imagens de questões | `/api/question-images` | `questionId` |
-| Simulados | `/api/mock-exams` | `userId` |
+| Simulados | `/api/mock-exams` | `userId` (o estudante só lista os próprios) |
 | Questões do simulado | `/api/mock-exam-questions` | `mockExamId`, `questionId` |
 | Usuários | `/api/users` | `userRoleId` |
 | Perfis | `/api/user-roles` | — |
 
-Quando mais de um filtro é enviado, vale apenas o primeiro na ordem da tabela.
-Por exemplo, em `/api/questions?entranceExamId=1&topicId=2` só o vestibular é
-considerado.
+Quando mais de um filtro é enviado, vale apenas o primeiro na ordem da tabela
+— exceto em `/api/questions`, onde todos os filtros valem juntos.
+
+### Questões: paginação e sorteio
+
+`GET /api/questions` é paginada e cada filtro se soma aos outros, então
+`?entranceExamId=1&knowledgeAreaId=2` devolve as questões daquele vestibular
+naquela área. Como a questão é classificada por tópico **ou** por matéria,
+`subjectId` e `knowledgeAreaId` valem pelos dois caminhos: a matéria (ou área)
+da própria questão e a do tópico dela.
+
+| Parâmetro | Padrão | Observações |
+|---|---|---|
+| `page` | `0` | Número da página; negativo responde `400` |
+| `size` | `20` | Tamanho da página, de 1 a 100; fora disso responde `400` |
+
+O resultado sai ordenado por `id`, então nenhum registro aparece em duas
+páginas. A resposta é um envelope, e não uma lista solta:
+
+```json
+{
+  "content": [ { "id": 1, "statement": "..." } ],
+  "page": 0,
+  "size": 20,
+  "totalElements": 137,
+  "totalPages": 7,
+  "last": false
+}
+```
+
+`GET /api/questions/draw` aceita os mesmos filtros mais `size` (padrão 10, até
+100) e devolve as questões já embaralhadas — o simulado é montado no servidor,
+sem o cliente baixar o catálogo para escolher. Quando há menos questões que o
+pedido, devolve as que existem.
+
+### O gabarito não vai para o estudante
+
+`rightAnswer` só é preenchido para o administrador, que precisa dele para
+revisar o cadastro; para o estudante o campo nem aparece no JSON, então a
+resposta certa não chega ao cliente antes de a questão ser respondida. Depois
+de marcar a alternativa, `/api/mock-exam-questions` devolve `correct` (`true`
+ou `false`, e `null` enquanto a questão não foi respondida), que é a correção
+feita no servidor. A correção é congelada no momento da resposta
+(`is_correct`): se o administrador corrigir o gabarito depois, o histórico do
+estudante não muda.
+
+### Simulados: ciclo de vida
+
+| Etapa | Rota | O que acontece |
+|---|---|---|
+| Criar | `POST /api/mock-exams` | Corpo: `name`, `numQuestions`, `maxTime` e `userId` opcional. Sem `userId`, o dono é o usuário do token; só o administrador cria para outra pessoa. |
+| Montar | `POST /api/mock-exam-questions` | Vincula questões, no máximo `numQuestions`. Pode ser feito antes do início. |
+| Iniciar | `POST /api/mock-exams/{id}/start` | Grava `startedAt`. Só a partir daqui as questões podem ser respondidas. |
+| Responder | `POST` ou `PUT /api/mock-exam-questions` | Corpo: `mockExamId`, `questionId`, `answerOptionId`. O servidor registra `answeredAt` e a correção; `answerOptionId` nulo limpa a resposta. |
+| Finalizar | `POST /api/mock-exams/{id}/finish` | Calcula e grava `answeredCount`, `correctCount` e `accuracy`, trava o simulado e devolve o boletim. |
+| Consultar o boletim | `GET /api/mock-exams/{id}/result` | Simulado e aproveitamento por matéria, calculado das respostas (lista vazia antes da finalização). Cada matéria vem no mesmo formato de `/api/performance/me/subjects`. |
+
+Regras:
+
+- `accuracy` é `correctCount / numQuestions`, em porcentagem com duas casas:
+  questão em branco, ou que nem chegou a ser vinculada, conta como erro. No
+  boletim por matéria o total é o de questões vinculadas daquela matéria.
+- A matéria de uma questão é a do tópico dela ou, sem tópico, a da própria
+  questão. É uma regra única, calculada na hora sobre a classificação atual:
+  se o administrador reclassificar uma questão, o boletim, a análise por
+  matéria e a evolução mudam juntos. O banco garante que a questão tem tópico
+  OU matéria (`CHECK`).
+- Depois de finalizado, o simulado e as respostas não mudam: `PUT` e `DELETE`
+  nas questões e `PUT` no simulado respondem `409`. Excluir o simulado
+  continua permitido e leva as respostas junto.
+- O banco garante que a alternativa marcada é da questão respondida. Pelo
+  mesmo motivo, uma alternativa já marcada em algum simulado não pode ser
+  movida para outra questão (`409`).
+- `startedAt`, `finishedAt`, `correctCount` e `accuracy` não são mais aceitos
+  no corpo; se enviados, são ignorados.
+- O estudante só lê e altera os próprios simulados e respostas (`403` para os
+  de outra pessoa). O administrador acessa todos.
+
+### Desempenho do estudante
+
+Calculado só sobre simulados finalizados. Cada rota existe em
+`/api/performance/me/...` (o dono do token) e em
+`/api/performance/users/{userId}/...` (exclusiva do administrador).
+
+| Rota | Retorno | Filtros além de `from` e `to` |
+|---|---|---|
+| `/overview` | Simulados finalizados, questões, respondidas, acertos, aproveitamento e duração média em minutos | — |
+| `/knowledge-areas` | Aproveitamento por área do conhecimento | `entranceExamId` |
+| `/subjects` | Aproveitamento por matéria | `entranceExamId`, `knowledgeAreaId` |
+| `/topics` | Aproveitamento por tópico (só questões classificadas por tópico) | `entranceExamId`, `subjectId` |
+| `/difficulty` | Aproveitamento por dificuldade (`id` é o nível, de 1 a 3) | `entranceExamId` |
+| `/weak-topics` | Tópicos com menor aproveitamento | `entranceExamId`, `minQuestions` (padrão 5), `limit` (padrão 5, até 50) |
+| `/evolution` | Resultado de cada simulado em ordem cronológica; com `subjectId`, o resultado naquela matéria | `subjectId` |
+
+`from` e `to` são datas ISO (`2026-09-01`), inclusivas, aplicadas sobre a data
+de finalização. No resumo e na evolução geral o aproveitamento é
+`acertos / numQuestions`; nos detalhamentos é `acertos / questões vinculadas`
+do grupo, já que `numQuestions` não se divide por matéria.
+
+Exemplo de `GET /api/performance/me/subjects`:
+
+```json
+[
+  { "id": 5, "description": "Biologia", "questions": 12, "answered": 11, "correct": 8, "accuracy": 66.67 },
+  { "id": 7, "description": "Química", "questions": 8, "answered": 8, "correct": 3, "accuracy": 37.50 }
+]
+```
 
 Respostas de erro:
 
 | Status | Quando | Corpo |
 |---|---|---|
-| `400` | Corpo da requisição inválido | Mensagem por campo: `{"stage": "stage é obrigatório"}` |
+| `400` | Corpo da requisição ou parâmetro de query inválido | Mensagem por campo ou parâmetro: `{"stage": "stage é obrigatório"}` |
 | `401` | Sem token, token inválido, expirado ou revogado; ou login incorreto | `{"message": "..."}` |
-| `403` | Perfil sem permissão para o recurso | `{"message": "..."}` |
+| `403` | Perfil sem permissão para o recurso, ou registro de outro usuário | `{"message": "..."}` |
 | `404` | Registro ou registro relacionado não encontrado | `{"message": "..."}` (vazio no `GET /{id}`) |
-| `409` | Regra de negócio violada (ex.: username já cadastrado) | `{"message": "..."}` |
+| `409` | Regra de negócio violada (ex.: username já cadastrado, simulado já finalizado) ou registro ainda em uso (ex.: apagar questão que está em algum simulado) | `{"message": "..."}` |
 
 ## Autenticação e segurança
 
@@ -328,7 +443,9 @@ Nenhuma rota `/api/**` responde sem token, exceto `login` e `register`.
 |---|---|---|
 | `GET` no catálogo (estados, cidades, endereços, instituições, vestibulares, áreas, matérias, tópicos, questões, alternativas, imagens) | leitura | leitura |
 | `POST`/`PUT`/`PATCH`/`DELETE` no catálogo | negado (403) | permitido |
-| `/api/mock-exams/**`, `/api/mock-exam-questions/**` | CRUD completo | CRUD completo |
+| `/api/mock-exams/**`, `/api/mock-exam-questions/**` | CRUD dos próprios simulados (403 nos de outro) | CRUD de todos |
+| `/api/performance/me/**` | próprio desempenho | próprio desempenho |
+| `/api/performance/users/**` | negado (403) | desempenho de qualquer usuário |
 | `/api/users/**`, `/api/user-roles/**` | negado (403) | permitido |
 
 As permissões vêm do perfil (`user_role`) do usuário. A descrição é
@@ -342,6 +459,21 @@ no claim `roles` do token.
 | `security.jwt.secret` | Chave HS256, vinda de `JWT_SECRET` |
 | `security.jwt.issuer` | Emissor gravado e validado no token (`api-pontuo`) |
 | `security.jwt.expiration-minutes` | Validade do token, em minutos (padrão: 120) |
+| `security.cors.allowed-origins` | Origens liberadas no CORS, vindas de `CORS_ALLOWED_ORIGINS` |
+
+### CORS
+
+O navegador bloqueia as chamadas de um frontend em outra origem enquanto a API
+não as libera, então as origens permitidas ficam em
+`security.cors.allowed-origins`. O padrão (`http://localhost:*,http://127.0.0.1:*`)
+cobre o Flutter Web em modo debug, que sobe numa porta aleatória; em produção
+aponte `CORS_ALLOWED_ORIGINS` para o domínio do app.
+
+Os métodos liberados são `GET`, `POST`, `PUT`, `PATCH`, `DELETE` e `OPTIONS`, e
+os headers, `Authorization`, `Content-Type` e `Accept`. O preflight (`OPTIONS`)
+é respondido antes das regras de autorização, então não exige token. Não há
+envio de credenciais: a identidade vem do header `Authorization`, não de
+cookie.
 
 ### Como funciona o logout
 
@@ -394,7 +526,7 @@ migrations e executa `./mvnw -B verify`, incluindo os testes com banco.
 
 ```
 src/main/java/com/pontuo/api_pontuo
-├── config        # SecurityConfig: regras de acesso, JWT e BCrypt
+├── config        # SecurityConfig: regras de acesso, CORS, JWT e BCrypt
 ├── controller    # Endpoints REST
 ├── dto           # Records de requisição e resposta, com validação
 ├── entity        # Entidades JPA
@@ -436,14 +568,14 @@ endereços já vêm cadastrados pelas migrations.
 
 ## Pontos ainda abertos
 
-- `MockExam` tem `user_id`, mas as rotas de simulado ainda não filtram por
-  dono: qualquer usuário autenticado pode ler e alterar o simulado de outro. A
-  proteção atual é por perfil, não por propriedade do registro.
+- `maxTime` é informativo: a API não encerra o simulado quando o tempo acaba.
+- O tempo gasto em cada questão ainda não é registrado; a duração só existe
+  para o simulado inteiro.
 - Não há rate limiting nem bloqueio temporário após tentativas de login
   falhas.
 - Não há refresh token: quando o token expira, é preciso fazer login de novo.
-- CORS não está configurado, o que é necessário antes de consumir a API por um
-  frontend em outra origem.
+- Só `/api/questions` é paginada; as outras listagens ainda devolvem todos os
+  registros.
 
 ## Licença
 

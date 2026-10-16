@@ -25,7 +25,8 @@ import java.lang.annotation.Target;
 @TestPropertySource(properties = {
         "security.jwt.secret=segredo-de-teste-com-mais-de-32-bytes!!",
         "security.jwt.issuer=api-pontuo",
-        "security.jwt.expiration-minutes=120"
+        "security.jwt.expiration-minutes=120",
+        "security.cors.allowed-origins=http://localhost:*"
 })
 public @interface WithApiSecurity {
 }

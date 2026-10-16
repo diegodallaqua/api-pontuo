@@ -1,5 +1,9 @@
 package com.pontuo.api_pontuo.controller;
 
+import com.pontuo.api_pontuo.entity.AnswerOption;
+import com.pontuo.api_pontuo.entity.MockExam;
+import com.pontuo.api_pontuo.entity.MockExamHasQuestion;
+import com.pontuo.api_pontuo.entity.Question;
 import com.pontuo.api_pontuo.service.MockExamHasQuestionService;
 import com.pontuo.api_pontuo.support.WithApiSecurity;
 import org.junit.jupiter.api.DisplayName;
@@ -12,14 +16,17 @@ import org.springframework.security.test.web.servlet.request.SecurityMockMvcRequ
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
+import java.time.LocalDateTime;
 import java.util.Optional;
 
+import static org.hamcrest.Matchers.nullValue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @WebMvcTest(MockExamHasQuestionController.class)
@@ -69,5 +76,58 @@ class MockExamHasQuestionControllerTest {
 
         mockMvc.perform(get("/api/mock-exam-questions/99").with(estudante()))
                 .andExpect(status().isNotFound());
+    }
+
+    @Test
+    @DisplayName("respondida: o estudante recebe a correção, não o gabarito")
+    void deveCorrigirSemMostrarGabarito() throws Exception {
+        when(service.findById(1L)).thenReturn(Optional.of(respondida(true)));
+
+        mockMvc.perform(get("/api/mock-exam-questions/1").with(estudante()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.correct").value(true))
+                .andExpect(jsonPath("$.answerOption.letter").value("A"))
+                .andExpect(jsonPath("$.answerOption.rightAnswer").doesNotExist());
+    }
+
+    @Test
+    @DisplayName("alternativa errada vira correct false")
+    void deveMarcarErro() throws Exception {
+        when(service.findById(1L)).thenReturn(Optional.of(respondida(false)));
+
+        mockMvc.perform(get("/api/mock-exam-questions/1").with(estudante()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.correct").value(false));
+    }
+
+    @Test
+    @DisplayName("sem resposta correct fica nulo")
+    void deveDeixarCorrectNuloSemResposta() throws Exception {
+        MockExamHasQuestion pendente = new MockExamHasQuestion(simulado(), questao());
+        when(service.findById(1L)).thenReturn(Optional.of(pendente));
+
+        mockMvc.perform(get("/api/mock-exam-questions/1").with(estudante()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.correct").value(nullValue()))
+                .andExpect(jsonPath("$.answerOption").value(nullValue()));
+    }
+
+    private static MockExamHasQuestion respondida(boolean acertou) {
+        Question questao = questao();
+        AnswerOption marcada = new AnswerOption("A", "Texto da alternativa", acertou, questao);
+        marcada.setId(5L);
+        return new MockExamHasQuestion(simulado(), questao, marcada, LocalDateTime.now());
+    }
+
+    private static MockExam simulado() {
+        MockExam simulado = new MockExam("Simulado ENEM", (short) 10, (short) 90);
+        simulado.setId(3L);
+        return simulado;
+    }
+
+    private static Question questao() {
+        Question questao = new Question("Enunciado", null, (short) 2);
+        questao.setId(7L);
+        return questao;
     }
 }

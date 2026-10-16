@@ -1,10 +1,16 @@
 package com.pontuo.api_pontuo.service;
 
+import com.pontuo.api_pontuo.dto.QuestionFilterDTO;
+import com.pontuo.api_pontuo.entity.AnswerOption;
 import com.pontuo.api_pontuo.entity.EntranceExam;
 import com.pontuo.api_pontuo.entity.Question;
+import com.pontuo.api_pontuo.entity.QuestionImage;
 import com.pontuo.api_pontuo.entity.Subject;
 import com.pontuo.api_pontuo.entity.Topic;
+import com.pontuo.api_pontuo.repository.AnswerOptionRepository;
 import com.pontuo.api_pontuo.repository.EntranceExamRepository;
+import com.pontuo.api_pontuo.repository.KnowledgeAreaRepository;
+import com.pontuo.api_pontuo.repository.QuestionImageRepository;
 import com.pontuo.api_pontuo.repository.QuestionRepository;
 import com.pontuo.api_pontuo.repository.SubjectRepository;
 import com.pontuo.api_pontuo.repository.TopicRepository;
@@ -14,18 +20,31 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyCollection;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
@@ -38,6 +57,7 @@ class QuestionServiceTest {
     private static final Long VESTIBULAR_ID = 1L;
     private static final Long TOPICO_ID = 2L;
     private static final Long MATERIA_ID = 3L;
+    private static final Long AREA_ID = 4L;
 
     @Mock
     private QuestionRepository repository;
@@ -50,6 +70,15 @@ class QuestionServiceTest {
 
     @Mock
     private SubjectRepository subjectRepository;
+
+    @Mock
+    private KnowledgeAreaRepository knowledgeAreaRepository;
+
+    @Mock
+    private AnswerOptionRepository answerOptionRepository;
+
+    @Mock
+    private QuestionImageRepository questionImageRepository;
 
     @InjectMocks
     private QuestionService service;
@@ -68,6 +97,16 @@ class QuestionServiceTest {
         materia = new Subject("Biologia");
         materia.setId(MATERIA_ID);
         questao = new Question("Enunciado", "Explicação", (short) 2);
+    }
+
+    private static QuestionFilterDTO semFiltro() {
+        return new QuestionFilterDTO(null, null, null, null, null);
+    }
+
+    private static Question comId(Long id) {
+        Question questao = new Question("Enunciado", null, (short) 2);
+        questao.setId(id);
+        return questao;
     }
 
     private void salvarDevolvendoOArgumento() {
@@ -222,8 +261,8 @@ class QuestionServiceTest {
     }
 
     @Nested
-    @DisplayName("delete e consultas")
-    class DeleteEConsultas {
+    @DisplayName("delete")
+    class Delete {
 
         @Test
         @DisplayName("delete remove a questão existente")
@@ -246,40 +285,197 @@ class QuestionServiceTest {
             verify(repository, never()).deleteById(any());
         }
 
+    }
+
+    @Nested
+    @DisplayName("search")
+    class Search {
+
         @Test
-        @DisplayName("findByEntranceExamId falha quando o vestibular não existe")
-        void deveFalharAoListarPorVestibularInexistente() {
+        @DisplayName("repassa os quatro filtros juntos, nenhum sobrepõe o outro")
+        void deveCombinarOsFiltros() {
+            Pageable pagina = PageRequest.of(0, 20);
+            Page<Question> esperada = new PageImpl<>(List.of(questao));
+            when(entranceExamRepository.existsById(VESTIBULAR_ID)).thenReturn(true);
+            when(knowledgeAreaRepository.existsById(AREA_ID)).thenReturn(true);
+            when(subjectRepository.existsById(MATERIA_ID)).thenReturn(true);
+            when(topicRepository.existsById(TOPICO_ID)).thenReturn(true);
+            when(repository.search(VESTIBULAR_ID, AREA_ID, MATERIA_ID, TOPICO_ID, null, pagina))
+                    .thenReturn(esperada);
+
+            Page<Question> resultado = service.search(
+                    new QuestionFilterDTO(VESTIBULAR_ID, AREA_ID, MATERIA_ID, TOPICO_ID, null),
+                    pagina);
+
+            assertSame(esperada, resultado);
+        }
+
+        @Test
+        @DisplayName("sem filtro não consulta nenhum repositório de validação")
+        void deveBuscarTudoSemValidarNada() {
+            Pageable pagina = PageRequest.of(0, 20);
+            when(repository.search(null, null, null, null, null, pagina))
+                    .thenReturn(new PageImpl<>(List.of()));
+
+            service.search(semFiltro(), pagina);
+
+            verifyNoInteractions(entranceExamRepository, topicRepository,
+                    subjectRepository, knowledgeAreaRepository);
+        }
+
+        @Test
+        @DisplayName("área inexistente é 404, não lista vazia")
+        void deveFalharComAreaInexistente() {
+            when(knowledgeAreaRepository.existsById(AREA_ID)).thenReturn(false);
+
+            EntityNotFoundException ex = assertThrows(EntityNotFoundException.class,
+                    () -> service.search(new QuestionFilterDTO(null, AREA_ID, null, null, null),
+                            PageRequest.of(0, 20)));
+
+            assertEquals("KnowledgeArea não encontrada: id=4", ex.getMessage());
+            verify(repository, never()).search(any(), any(), any(), any(), any(), any());
+        }
+
+        @Test
+        @DisplayName("vestibular inexistente é 404, mesmo com os outros filtros válidos")
+        void deveFalharComVestibularInexistente() {
             when(entranceExamRepository.existsById(VESTIBULAR_ID)).thenReturn(false);
 
             EntityNotFoundException ex = assertThrows(EntityNotFoundException.class,
-                    () -> service.findByEntranceExamId(VESTIBULAR_ID));
+                    () -> service.search(new QuestionFilterDTO(VESTIBULAR_ID, null, null, TOPICO_ID, null),
+                            PageRequest.of(0, 20)));
 
             assertEquals("EntranceExam não encontrado: id=1", ex.getMessage());
-            verify(repository, never()).findByEntranceExamId(any());
+            verify(repository, never()).search(any(), any(), any(), any(), any(), any());
+        }
+    }
+
+    @Nested
+    @DisplayName("draw")
+    class Draw {
+
+        @Test
+        @DisplayName("sorteia a quantidade pedida entre as candidatas, sem repetir")
+        void deveSortearAQuantidadePedida() {
+            List<Long> candidatas = List.of(1L, 2L, 3L, 4L, 5L);
+            when(repository.searchIds(null, null, null, null, null)).thenReturn(candidatas);
+            when(repository.findByIdIn(anyCollection())).thenAnswer(invocation ->
+                    idsDoArgumento(invocation.getArgument(0)).stream()
+                            .map(QuestionServiceTest::comId)
+                            .toList());
+
+            List<Long> sorteadas = service.draw(semFiltro(), 3).stream()
+                    .map(sorteada -> sorteada.question().getId())
+                    .toList();
+
+            assertAll(
+                    () -> assertEquals(3, sorteadas.size()),
+                    () -> assertEquals(3, sorteadas.stream().distinct().count()),
+                    () -> assertTrue(candidatas.containsAll(sorteadas)));
         }
 
         @Test
-        @DisplayName("findByTopicId falha quando o tópico não existe")
-        void deveFalharAoListarPorTopicoInexistente() {
+        @DisplayName("mantém a ordem do sorteio, e não a ordem do banco")
+        void deveManterAOrdemDoSorteio() {
+            when(repository.searchIds(null, null, null, null, null)).thenReturn(List.of(1L, 2L, 3L));
+            // O banco devolve na ordem dele; aqui, invertida de propósito.
+            when(repository.findByIdIn(anyCollection())).thenAnswer(invocation -> {
+                List<Long> ids = new ArrayList<>(idsDoArgumento(invocation.getArgument(0)));
+                Collections.reverse(ids);
+                return ids.stream().map(QuestionServiceTest::comId).toList();
+            });
+
+            List<Long> sorteadas = service.draw(semFiltro(), 3).stream()
+                    .map(sorteada -> sorteada.question().getId())
+                    .toList();
+
+            @SuppressWarnings("unchecked")
+            ArgumentCaptor<Collection<Long>> pedidos = ArgumentCaptor.forClass(Collection.class);
+            verify(repository).findByIdIn(pedidos.capture());
+            assertEquals(List.copyOf(pedidos.getValue()), sorteadas);
+        }
+
+        @Test
+        @DisplayName("devolve o que existe quando há menos questões que o pedido")
+        void deveDevolverOQueExiste() {
+            when(repository.searchIds(null, null, null, null, null)).thenReturn(List.of(7L, 8L));
+            when(repository.findByIdIn(anyCollection())).thenAnswer(invocation ->
+                    idsDoArgumento(invocation.getArgument(0)).stream()
+                            .map(QuestionServiceTest::comId)
+                            .toList());
+
+            assertEquals(2, service.draw(semFiltro(), 10).size());
+        }
+
+        @Test
+        @DisplayName("sem candidata não vai ao banco buscar questão nenhuma")
+        void deveDevolverVazioSemCandidatas() {
+            when(repository.searchIds(null, null, null, null, null)).thenReturn(List.of());
+
+            assertEquals(List.of(), service.draw(semFiltro(), 10));
+            verify(repository, never()).findByIdIn(any());
+        }
+
+        @Test
+        @DisplayName("cada questão recebe as alternativas e imagens que são dela")
+        void deveAgruparAlternativasEImagensPorQuestao() {
+            when(repository.searchIds(null, null, null, null, null)).thenReturn(List.of(1L, 2L));
+            when(repository.findByIdIn(anyCollection())).thenAnswer(invocation ->
+                    idsDoArgumento(invocation.getArgument(0)).stream()
+                            .map(QuestionServiceTest::comId)
+                            .toList());
+            when(answerOptionRepository.findByQuestionIdIn(anyCollection()))
+                    .thenReturn(List.of(alternativa("A", comId(1L)), alternativa("B", comId(2L))));
+            when(questionImageRepository.findByQuestionIdIn(anyCollection()))
+                    .thenReturn(List.of(imagem(comId(2L))));
+
+            Map<Long, DrawnQuestion> porQuestao = service.draw(semFiltro(), 2).stream()
+                    .collect(Collectors.toMap(sorteada -> sorteada.question().getId(), sorteada -> sorteada));
+
+            assertAll(
+                    () -> assertEquals(List.of("A"), letras(porQuestao.get(1L))),
+                    () -> assertEquals(List.of("B"), letras(porQuestao.get(2L))),
+                    () -> assertEquals(0, porQuestao.get(1L).images().size()),
+                    () -> assertEquals(1, porQuestao.get(2L).images().size()));
+        }
+
+        @Test
+        @DisplayName("sem candidata não busca alternativa nem imagem")
+        void naoDeveBuscarConteudoSemCandidatas() {
+            when(repository.searchIds(null, null, null, null, null)).thenReturn(List.of());
+
+            service.draw(semFiltro(), 10);
+
+            verifyNoInteractions(answerOptionRepository, questionImageRepository);
+        }
+
+        private List<String> letras(DrawnQuestion sorteada) {
+            return sorteada.answerOptions().stream().map(AnswerOption::getLetter).toList();
+        }
+
+        private AnswerOption alternativa(String letra, Question questao) {
+            return new AnswerOption(letra, "Texto " + letra, false, questao);
+        }
+
+        private QuestionImage imagem(Question questao) {
+            return new QuestionImage("https://exemplo/" + questao.getId() + ".png", null, questao);
+        }
+
+        @Test
+        @DisplayName("valida os filtros antes de sortear")
+        void deveValidarFiltros() {
             when(topicRepository.existsById(TOPICO_ID)).thenReturn(false);
 
             EntityNotFoundException ex = assertThrows(EntityNotFoundException.class,
-                    () -> service.findByTopicId(TOPICO_ID));
+                    () -> service.draw(new QuestionFilterDTO(null, null, null, TOPICO_ID, null), 5));
 
             assertEquals("Topic não encontrado: id=2", ex.getMessage());
-            verify(repository, never()).findByTopicId(any());
+            verify(repository, never()).searchIds(any(), any(), any(), any(), any());
         }
 
-        @Test
-        @DisplayName("findBySubjectId falha quando a matéria não existe")
-        void deveFalharAoListarPorMateriaInexistente() {
-            when(subjectRepository.existsById(MATERIA_ID)).thenReturn(false);
-
-            EntityNotFoundException ex = assertThrows(EntityNotFoundException.class,
-                    () -> service.findBySubjectId(MATERIA_ID));
-
-            assertEquals("Subject não encontrada: id=3", ex.getMessage());
-            verify(repository, never()).findBySubjectId(any());
+        @SuppressWarnings("unchecked")
+        private List<Long> idsDoArgumento(Object argument) {
+            return List.copyOf((Collection<Long>) argument);
         }
     }
 }

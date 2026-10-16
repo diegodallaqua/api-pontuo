@@ -4,8 +4,10 @@ import jakarta.persistence.EntityNotFoundException;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.core.MethodParameter;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.validation.BeanPropertyBindingResult;
 import org.springframework.validation.FieldError;
@@ -41,6 +43,31 @@ class ApiExceptionHandlerTest {
         assertAll(
                 () -> assertEquals(HttpStatus.CONFLICT, resposta.getStatusCode()),
                 () -> assertEquals(Map.of("message", "username já cadastrado: maria"), resposta.getBody()));
+    }
+
+    @Test
+    @DisplayName("AccessDeniedException do service vira 403 com a mensagem da exceção")
+    void deveResponder403() {
+        ResponseEntity<Map<String, String>> resposta = handler.handleAccessDenied(
+                new AccessDeniedException("Acesso negado: o registro pertence a outro usuário."));
+
+        assertAll(
+                () -> assertEquals(HttpStatus.FORBIDDEN, resposta.getStatusCode()),
+                () -> assertEquals(Map.of("message", "Acesso negado: o registro pertence a outro usuário."),
+                        resposta.getBody()));
+    }
+
+    @Test
+    @DisplayName("violação de restrição do banco vira 409 sem expor o erro SQL")
+    void deveResponder409SemDetalheDoBanco() {
+        ResponseEntity<Map<String, String>> resposta = handler.handleDataIntegrity(
+                new DataIntegrityViolationException("Cannot delete or update a parent row: fk_mehq_question"));
+
+        assertAll(
+                () -> assertEquals(HttpStatus.CONFLICT, resposta.getStatusCode()),
+                () -> assertEquals(
+                        Map.of("message", "Operação recusada: o registro está em uso por outros dados ou já existe."),
+                        resposta.getBody()));
     }
 
     @Test

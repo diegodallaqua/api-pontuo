@@ -23,6 +23,11 @@ public class MockExamHasQuestion {
     @Column(name = "answered_at")
     private LocalDateTime answeredAt;
 
+    // Correção congelada no momento da resposta, para o histórico não mudar se
+    // o gabarito for editado depois. Nula enquanto a questão não foi respondida.
+    @Column(name = "is_correct")
+    private Boolean isCorrect;
+
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "mock_exam_id", nullable = false)
     private MockExam mockExam;
@@ -49,8 +54,17 @@ public class MockExamHasQuestion {
                                AnswerOption answerOption, LocalDateTime answeredAt) {
         this.mockExam = mockExam;
         this.question = question;
+        answer(answerOption, answeredAt);
+    }
+
+    /**
+     * Registra a alternativa marcada e congela a correção. Com alternativa
+     * nula, a questão volta a ficar sem resposta.
+     */
+    public void answer(AnswerOption answerOption, LocalDateTime answeredAt) {
         this.answerOption = answerOption;
-        this.answeredAt = answeredAt;
+        this.answeredAt = answerOption == null ? null : answeredAt;
+        this.isCorrect = answerOption == null ? null : answerOption.isRightAnswer();
     }
 
     public Long getId() {
@@ -67,6 +81,14 @@ public class MockExamHasQuestion {
 
     public void setAnsweredAt(LocalDateTime answeredAt) {
         this.answeredAt = answeredAt;
+    }
+
+    public Boolean getIsCorrect() {
+        return isCorrect;
+    }
+
+    public void setIsCorrect(Boolean isCorrect) {
+        this.isCorrect = isCorrect;
     }
 
     public MockExam getMockExam() {

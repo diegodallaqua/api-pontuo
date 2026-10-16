@@ -29,6 +29,7 @@ import com.pontuo.api_pontuo.entity.Subject;
 import com.pontuo.api_pontuo.entity.Topic;
 import com.pontuo.api_pontuo.entity.User;
 import com.pontuo.api_pontuo.entity.UserRole;
+import com.pontuo.api_pontuo.security.Roles;
 import com.pontuo.api_pontuo.service.MockExamHasQuestionService;
 
 import jakarta.validation.Valid;
@@ -81,8 +82,7 @@ public class MockExamHasQuestionController {
         MockExamHasQuestion created = service.create(
                 requestDTO.mockExamId(),
                 requestDTO.questionId(),
-                requestDTO.answerOptionId(),
-                requestDTO.answeredAt());
+                requestDTO.answerOptionId());
         return toResponseDTO(created);
     }
 
@@ -94,8 +94,7 @@ public class MockExamHasQuestionController {
                 id,
                 requestDTO.mockExamId(),
                 requestDTO.questionId(),
-                requestDTO.answerOptionId(),
-                requestDTO.answeredAt());
+                requestDTO.answerOptionId());
         return toResponseDTO(updated);
     }
 
@@ -109,11 +108,15 @@ public class MockExamHasQuestionController {
         return new MockExamHasQuestionResponseDTO(
                 entity.getId(),
                 entity.getAnsweredAt(),
+                // Correção congelada na resposta: é o que o estudante recebe em
+                // lugar do gabarito — nula enquanto não respondeu.
+                entity.getIsCorrect(),
                 toMockExamResponseDTO(entity.getMockExam()),
                 toQuestionResponseDTO(entity.getQuestion()),
                 toAnswerOptionResponseDTO(entity.getAnswerOption()));
     }
 
+    /** Mesma regra do catálogo: o gabarito só sai para o administrador. */
     private AnswerOptionResponseDTO toAnswerOptionResponseDTO(AnswerOption entity) {
         if (entity == null) {
             return null;
@@ -122,7 +125,7 @@ public class MockExamHasQuestionController {
                 entity.getId(),
                 entity.getLetter(),
                 entity.getText(),
-                entity.isRightAnswer(),
+                Roles.isAdministrador() ? entity.isRightAnswer() : null,
                 toQuestionResponseDTO(entity.getQuestion()));
     }
 
@@ -138,6 +141,7 @@ public class MockExamHasQuestionController {
                 entity.getCreatedAt(),
                 entity.getStartedAt(),
                 entity.getFinishedAt(),
+                entity.getAnsweredCount(),
                 entity.getCorrectCount(),
                 entity.getAccuracy(),
                 toUserResponseDTO(entity.getUser()));
