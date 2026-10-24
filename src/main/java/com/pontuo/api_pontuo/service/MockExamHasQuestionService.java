@@ -21,7 +21,7 @@ import java.util.Optional;
 /**
  * Questões de um simulado e as respostas do estudante. Vincular questões pode
  * ser feito antes do início; responder exige o simulado iniciado. Depois da
- * finalização nada muda. O estudante só mexe nos próprios simulados.
+ * finalização ou do prazo nada muda. O estudante só mexe nos próprios simulados.
  */
 @Service
 public class MockExamHasQuestionService {
@@ -80,9 +80,15 @@ public class MockExamHasQuestionService {
         validateLimit(mockExam);
 
         MockExamHasQuestion link = new MockExamHasQuestion(mockExam, findQuestion(questionId));
+        AnswerOption answerOption = null;
         if (answerOptionId != null) {
             validateStarted(mockExam);
-            link.answer(findAnswerOption(answerOptionId, questionId), LocalDateTime.now());
+            answerOption = findAnswerOption(answerOptionId, questionId);
+        }
+        LocalDateTime now = LocalDateTime.now();
+        validateEditable(mockExam, now);
+        if (answerOption != null) {
+            link.answer(answerOption, now);
         }
         return repository.save(link);
     }
@@ -100,14 +106,21 @@ public class MockExamHasQuestionService {
             validateLimit(mockExam);
         }
 
+        Question question = findQuestion(questionId);
+        AnswerOption answerOption = null;
+        if (answerOptionId != null && (!samePair || !answerOptionId.equals(answeredOptionId(existing)))) {
+            validateStarted(mockExam);
+            answerOption = findAnswerOption(answerOptionId, questionId);
+        }
+        LocalDateTime now = LocalDateTime.now();
+        validateEditable(mockExam, now);
         existing.setMockExam(mockExam);
-        existing.setQuestion(findQuestion(questionId));
+        existing.setQuestion(question);
         if (answerOptionId == null) {
             existing.answer(null, null);
-        } else if (!samePair || !answerOptionId.equals(answeredOptionId(existing))) {
+        } else if (answerOption != null) {
             // Trocar a alternativa registra novo horário; repetir a mesma mantém o original.
-            validateStarted(mockExam);
-            existing.answer(findAnswerOption(answerOptionId, questionId), LocalDateTime.now());
+            existing.answer(answerOption, now);
         }
         return repository.save(existing);
     }
@@ -122,14 +135,14 @@ public class MockExamHasQuestionService {
                 .orElseThrow(() -> new EntityNotFoundException(
                         "MockExamHasQuestion não encontrado: id=" + id));
         currentUser.checkAccess(link.getMockExam().getUser());
-        validateNotFinished(link.getMockExam());
+        validateEditable(link.getMockExam());
         return link;
     }
 
     private MockExam findEditableMockExam(Long mockExamId) {
         MockExam mockExam = findMockExam(mockExamId);
         currentUser.checkAccess(mockExam.getUser());
-        validateNotFinished(mockExam);
+        validateEditable(mockExam);
         return mockExam;
     }
 
@@ -162,10 +175,18 @@ public class MockExamHasQuestionService {
         }
     }
 
-    private static void validateNotFinished(MockExam mockExam) {
+    private static void validateEditable(MockExam mockExam) {
+        validateEditable(mockExam, LocalDateTime.now());
+    }
+
+    private static void validateEditable(MockExam mockExam, LocalDateTime now) {
         if (mockExam.isFinished()) {
             throw new IllegalArgumentException(
                     "simulado já finalizado não pode ser alterado: mockExamId=" + mockExam.getId());
+        }
+        if (mockExam.isExpiredAt(now)) {
+            throw new IllegalArgumentException(
+                    "prazo do simulado encerrado: mockExamId=" + mockExam.getId());
         }
     }
 

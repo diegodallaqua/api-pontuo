@@ -165,6 +165,10 @@ public class MockExam {
         return finishedAt != null;
     }
 
+    public boolean isExpiredAt(LocalDateTime now) {
+        return isStarted() && !now.isBefore(startedAt.plusMinutes(maxTime));
+    }
+
     public User getUser() {
         return user;
     }

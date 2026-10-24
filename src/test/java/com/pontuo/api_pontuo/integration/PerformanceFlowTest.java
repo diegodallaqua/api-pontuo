@@ -7,6 +7,7 @@ import com.pontuo.api_pontuo.entity.Question;
 import com.pontuo.api_pontuo.entity.User;
 import com.pontuo.api_pontuo.repository.DatabaseFixtures;
 import com.pontuo.api_pontuo.repository.MockExamHasQuestionRepository;
+import com.pontuo.api_pontuo.repository.MockExamRepository;
 import com.pontuo.api_pontuo.repository.QuestionRepository;
 import com.pontuo.api_pontuo.repository.SubjectRepository;
 import com.pontuo.api_pontuo.support.RequiresDatabase;
@@ -23,6 +24,8 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.JwtRequestPostProcessor;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.time.LocalDateTime;
 
 import static com.pontuo.api_pontuo.repository.DatabaseFixtures.BIOLOGIA_ID;
 import static com.pontuo.api_pontuo.repository.DatabaseFixtures.GENETICA_ID;
@@ -64,6 +67,9 @@ class PerformanceFlowTest {
 
     @Autowired
     private MockExamHasQuestionRepository linkRepository;
+
+    @Autowired
+    private MockExamRepository mockExamRepository;
 
     @Autowired
     private QuestionRepository questionRepository;
@@ -131,6 +137,27 @@ class PerformanceFlowTest {
     class Simulado {
 
         @Test
+        @DisplayName("prazo vencido bloqueia vínculos, mas permite finalizar")
+        void deveAplicarPrazoNoServidor() throws Exception {
+            simulado.setStartedAt(LocalDateTime.now().minusMinutes(91));
+            mockExamRepository.saveAndFlush(simulado);
+
+            mockMvc.perform(post("/api/mock-exam-questions").with(como(aluno))
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(vinculoJson(simulado, genetica, null)))
+                    .andExpect(status().isConflict());
+
+            mockMvc.perform(put("/api/mock-exams/{id}", simulado.getId()).with(como(aluno))
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content("{\"name\":\"Alterado\",\"numQuestions\":4,\"maxTime\":90}"))
+                    .andExpect(status().isConflict());
+
+            mockMvc.perform(post("/api/mock-exams/{id}/finish", simulado.getId()).with(como(aluno)))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.mockExam.finishedAt").isNotEmpty());
+        }
+
+        @Test
         @DisplayName("não aceita resposta antes do início")
         void deveRecusarRespostaAntesDoInicio() throws Exception {
             mockMvc.perform(post("/api/mock-exam-questions").with(como(aluno))
@@ -140,18 +167,26 @@ class PerformanceFlowTest {
         }
 
         @Test
-        @DisplayName("a resposta volta corrigida, sem o gabarito")
-        void deveCorrigirAResposta() throws Exception {
+        @DisplayName("a correção só aparece após finalizar")
+        void deveOcultarCorrecaoAteFinalizar() throws Exception {
             mockMvc.perform(post("/api/mock-exams/{id}/start", simulado.getId()).with(como(aluno)))
                     .andExpect(status().isOk());
 
-            mockMvc.perform(post("/api/mock-exam-questions").with(como(aluno))
+            String resposta = mockMvc.perform(post("/api/mock-exam-questions").with(como(aluno))
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(vinculoJson(simulado, biologia, alternativasBiologia[1])))
                     .andExpect(status().isCreated())
-                    .andExpect(jsonPath("$.correct").value(false))
+                    .andExpect(jsonPath("$.correct").doesNotExist())
                     .andExpect(jsonPath("$.answeredAt").isNotEmpty())
-                    .andExpect(jsonPath("$.answerOption.rightAnswer").doesNotExist());
+                    .andExpect(jsonPath("$.answerOption.rightAnswer").doesNotExist())
+                    .andReturn().getResponse().getContentAsString();
+
+            mockMvc.perform(post("/api/mock-exams/{id}/finish", simulado.getId()).with(como(aluno)))
+                    .andExpect(status().isOk());
+            long linkId = ((Number) JsonPath.read(resposta, "$.id")).longValue();
+            mockMvc.perform(get("/api/mock-exam-questions/{id}", linkId).with(como(aluno)))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.correct").value(false));
         }
 
         @Test

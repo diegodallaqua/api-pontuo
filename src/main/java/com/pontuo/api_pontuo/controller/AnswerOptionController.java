@@ -102,7 +102,7 @@ public class AnswerOptionController {
         return new QuestionResponseDTO(
                 entity.getId(),
                 entity.getStatement(),
-                entity.getExplanation(),
+                Roles.isAdministrador() ? entity.getExplanation() : null,
                 entity.getDifficulty(),
                 entity.getCreatedAt(),
                 toEntranceExamResponseDTO(entity.getEntranceExam()),

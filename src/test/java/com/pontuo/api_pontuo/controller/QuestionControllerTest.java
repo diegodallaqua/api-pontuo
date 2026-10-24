@@ -68,6 +68,23 @@ class QuestionControllerTest {
         return jwt().authorities(new SimpleGrantedAuthority("ROLE_ADMINISTRADOR"));
     }
 
+    private static JwtRequestPostProcessor estudante() {
+        return jwt().authorities(new SimpleGrantedAuthority("ROLE_ESTUDANTE"));
+    }
+
+    @Test
+    @DisplayName("catálogo oculta a explicação do estudante e a mantém para o administrador")
+    void deveProtegerExplicacaoNoCatalogo() throws Exception {
+        when(service.findById(7L)).thenReturn(Optional.of(questao(7L)));
+
+        mockMvc.perform(get("/api/questions/7").with(estudante()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.explanation").doesNotExist());
+        mockMvc.perform(get("/api/questions/7").with(administrador()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.explanation").value("Explicação"));
+    }
+
     private static Question questao(Long id) {
         Question questao = new Question("Enunciado", "Explicação", (short) 2);
         questao.setId(id);

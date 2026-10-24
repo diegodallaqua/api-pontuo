@@ -157,6 +157,47 @@ class MockExamServiceTest {
         }
 
         @Test
+        @DisplayName("recusa alterar o prazo após o início")
+        void deveRecusarAlterarTempoAposInicio() {
+            simulado.setStartedAt(LocalDateTime.now().minusMinutes(5));
+            simuladoExiste();
+
+            IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+                    () -> service.update(1L, atualizado, null));
+
+            assertEquals("maxTime não pode ser alterado após o início: id=1", ex.getMessage());
+            verify(repository, never()).save(any());
+        }
+
+        @Test
+        @DisplayName("permite renomear durante o prazo mantendo maxTime")
+        void devePermitirRenomearDurantePrazo() {
+            simulado.setStartedAt(LocalDateTime.now().minusMinutes(5));
+            atualizado.setMaxTime(simulado.getMaxTime());
+            simuladoExiste();
+            when(repository.save(any(MockExam.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+            MockExam resultado = service.update(1L, atualizado, null);
+
+            assertEquals("Simulado revisado", resultado.getName());
+            assertEquals(simulado.getMaxTime(), resultado.getMaxTime());
+        }
+
+        @Test
+        @DisplayName("recusa alterar o simulado quando o prazo acabou")
+        void deveRecusarAtualizacaoAposPrazo() {
+            simulado.setStartedAt(LocalDateTime.now().minusMinutes(91));
+            atualizado.setMaxTime(simulado.getMaxTime());
+            simuladoExiste();
+
+            IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+                    () -> service.update(1L, atualizado, null));
+
+            assertEquals("prazo do simulado encerrado: id=1", ex.getMessage());
+            verify(repository, never()).save(any());
+        }
+
+        @Test
         @DisplayName("copia nome, número de questões e tempo; mantém o dono sem userId")
         void deveAtualizarCampos() {
             comoEstudante();
@@ -353,6 +394,19 @@ class MockExamServiceTest {
         @BeforeEach
         void setUpInicio() {
             simulado.setStartedAt(INICIO);
+        }
+
+        @Test
+        @DisplayName("após o prazo, finaliza com horário limitado ao encerramento")
+        void deveFinalizarNoHorarioLimite() {
+            simulado.setStartedAt(LocalDateTime.now().minusMinutes(91));
+            simuladoExiste();
+            when(repository.save(any(MockExam.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+            MockExam resultado = service.finish(1L);
+
+            assertEquals(simulado.getStartedAt().plusMinutes(simulado.getMaxTime()),
+                    resultado.getFinishedAt());
         }
 
         private MockExamHasQuestion vinculo(Boolean acertou) {

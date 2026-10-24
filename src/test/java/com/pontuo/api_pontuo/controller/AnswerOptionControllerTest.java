@@ -46,7 +46,7 @@ class AnswerOptionControllerTest {
     }
 
     private static AnswerOption alternativaCorreta() {
-        Question questao = new Question("Enunciado", null, (short) 2);
+        Question questao = new Question("Enunciado", "Explicação", (short) 2);
         questao.setId(7L);
         AnswerOption alternativa = new AnswerOption("A", "Texto da alternativa", true, questao);
         alternativa.setId(1L);
@@ -62,7 +62,8 @@ class AnswerOptionControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].letter").value("A"))
                 .andExpect(jsonPath("$[0].text").value("Texto da alternativa"))
-                .andExpect(jsonPath("$[0].rightAnswer").doesNotExist());
+                .andExpect(jsonPath("$[0].rightAnswer").doesNotExist())
+                .andExpect(jsonPath("$[0].question.explanation").doesNotExist());
     }
 
     @Test
@@ -72,7 +73,8 @@ class AnswerOptionControllerTest {
 
         mockMvc.perform(get("/api/answer-options").param("questionId", "7").with(administrador()))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$[0].rightAnswer").value(true));
+                .andExpect(jsonPath("$[0].rightAnswer").value(true))
+                .andExpect(jsonPath("$[0].question.explanation").value("Explicação"));
     }
 
     @Test

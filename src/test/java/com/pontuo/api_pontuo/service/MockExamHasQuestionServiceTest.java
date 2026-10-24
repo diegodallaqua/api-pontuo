@@ -49,7 +49,7 @@ class MockExamHasQuestionServiceTest {
     private static final Long ALTERNATIVA_ID = 3L;
     private static final Long ALTERNATIVA_DE_OUTRA_QUESTAO_ID = 4L;
     private static final Long OUTRA_QUESTAO_ID = 5L;
-    private static final LocalDateTime INICIO = LocalDateTime.of(2026, 9, 12, 14, 0);
+    private static final LocalDateTime INICIO = LocalDateTime.now().minusMinutes(5);
 
     @Mock
     private MockExamHasQuestionRepository repository;
@@ -106,6 +106,19 @@ class MockExamHasQuestionServiceTest {
     @Nested
     @DisplayName("create")
     class Create {
+
+        @Test
+        @DisplayName("recusa criar vínculo após o prazo")
+        void deveRecusarVinculoAposPrazo() {
+            simulado.setStartedAt(LocalDateTime.now().minusMinutes(91));
+            simuladoExiste();
+
+            IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+                    () -> service.create(SIMULADO_ID, QUESTAO_ID, null));
+
+            assertEquals("prazo do simulado encerrado: mockExamId=1", ex.getMessage());
+            verify(repository, never()).save(any());
+        }
 
         @Test
         @DisplayName("vincula a questão respondida e congela a correção")
@@ -282,6 +295,32 @@ class MockExamHasQuestionServiceTest {
         }
 
         @Test
+        @DisplayName("recusa responder após o prazo, inclusive repetindo a alternativa")
+        void deveRecusarRespostaAposPrazo() {
+            simulado.setStartedAt(LocalDateTime.now().minusMinutes(91));
+            vinculo.answer(alternativa, INICIO);
+            when(repository.findById(10L)).thenReturn(Optional.of(vinculo));
+
+            IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+                    () -> service.update(10L, SIMULADO_ID, QUESTAO_ID, ALTERNATIVA_ID));
+
+            assertEquals("prazo do simulado encerrado: mockExamId=1", ex.getMessage());
+            verify(repository, never()).save(any());
+        }
+
+        @Test
+        @DisplayName("recusa limpar resposta após o prazo")
+        void deveRecusarLimpezaAposPrazo() {
+            simulado.setStartedAt(LocalDateTime.now().minusMinutes(91));
+            vinculo.answer(alternativa, INICIO);
+            when(repository.findById(10L)).thenReturn(Optional.of(vinculo));
+
+            assertThrows(IllegalArgumentException.class,
+                    () -> service.update(10L, SIMULADO_ID, QUESTAO_ID, null));
+            verify(repository, never()).save(any());
+        }
+
+        @Test
         @DisplayName("registra a resposta sem acusar duplicidade do próprio par")
         void deveResponderSemRevalidarOProprioPar() {
             when(repository.findById(10L)).thenReturn(Optional.of(vinculo));
@@ -376,6 +415,16 @@ class MockExamHasQuestionServiceTest {
         void setUpVinculo() {
             vinculo = new MockExamHasQuestion(simulado, questao);
             vinculo.setId(10L);
+        }
+
+        @Test
+        @DisplayName("recusa remover vínculo após o prazo")
+        void deveRecusarRemocaoAposPrazo() {
+            simulado.setStartedAt(LocalDateTime.now().minusMinutes(91));
+            when(repository.findById(10L)).thenReturn(Optional.of(vinculo));
+
+            assertThrows(IllegalArgumentException.class, () -> service.delete(10L));
+            verify(repository, never()).delete(any());
         }
 
         @Test

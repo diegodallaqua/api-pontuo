@@ -330,10 +330,10 @@ pedido, devolve as que existem.
 
 `rightAnswer` só é preenchido para o administrador, que precisa dele para
 revisar o cadastro; para o estudante o campo nem aparece no JSON, então a
-resposta certa não chega ao cliente antes de a questão ser respondida. Depois
-de marcar a alternativa, `/api/mock-exam-questions` devolve `correct` (`true`
-ou `false`, e `null` enquanto a questão não foi respondida), que é a correção
-feita no servidor. A correção é congelada no momento da resposta
+resposta certa não chega ao cliente. A explicação também fica nula nas consultas
+de catálogo, alternativas e imagens. Em `/api/mock-exam-questions`, `correct`
+e a explicação só têm valor para o estudante depois da finalização; o
+administrador pode revisar esses dados antes. A correção é congelada no momento da resposta
 (`is_correct`): se o administrador corrigir o gabarito depois, o histórico do
 estudante não muda.
 
@@ -361,6 +361,10 @@ Regras:
 - Depois de finalizado, o simulado e as respostas não mudam: `PUT` e `DELETE`
   nas questões e `PUT` no simulado respondem `409`. Excluir o simulado
   continua permitido e leva as respostas junto.
+- O prazo é `startedAt + maxTime`. Depois do início, `maxTime` não pode mudar.
+  Após o prazo, criar, alterar ou apagar vínculos e editar o simulado retorna
+  `409`. `finish` continua permitido e registra `finishedAt` no prazo, mesmo
+  se a chamada chegar mais tarde. A API não finaliza simulados em segundo plano.
 - O banco garante que a alternativa marcada é da questão respondida. Pelo
   mesmo motivo, uma alternativa já marcada em algum simulado não pode ser
   movida para outra questão (`409`).
@@ -568,7 +572,8 @@ endereços já vêm cadastrados pelas migrations.
 
 ## Pontos ainda abertos
 
-- `maxTime` é informativo: a API não encerra o simulado quando o tempo acaba.
+- A API aplica o prazo nas alterações, mas a finalização ainda depende de uma
+  chamada a `finish`; não há tarefa em segundo plano.
 - O tempo gasto em cada questão ainda não é registrado; a duração só existe
   para o simulado inteiro.
 - Não há rate limiting nem bloqueio temporário após tentativas de login

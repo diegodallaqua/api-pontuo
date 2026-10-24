@@ -6,9 +6,8 @@ public record MockExamHasQuestionResponseDTO(
         Long id,
         LocalDateTime answeredAt,
 
-        // Correção da alternativa marcada, calculada no servidor. Fica nula
-        // enquanto a questão não foi respondida — é assim que o estudante sabe
-        // se acertou sem receber o gabarito das alternativas.
+        // Correção calculada no servidor; só é exibida ao estudante após
+        // finalizar o simulado. Continua nula para questões em branco.
         Boolean correct,
 
         MockExamResponseDTO mockExam,

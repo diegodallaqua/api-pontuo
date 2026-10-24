@@ -47,6 +47,10 @@ class MockExamHasQuestionControllerTest {
         return jwt().authorities(new SimpleGrantedAuthority("ROLE_ESTUDANTE"));
     }
 
+    private static JwtRequestPostProcessor administrador() {
+        return jwt().authorities(new SimpleGrantedAuthority("ROLE_ADMINISTRADOR"));
+    }
+
     @Test
     @DisplayName("mockExamId tem precedência sobre questionId")
     void deveFiltrarSoPeloSimulado() throws Exception {
@@ -79,21 +83,49 @@ class MockExamHasQuestionControllerTest {
     }
 
     @Test
-    @DisplayName("respondida: o estudante recebe a correção, não o gabarito")
+    @DisplayName("após finalizar, o estudante recebe a correção e a explicação")
     void deveCorrigirSemMostrarGabarito() throws Exception {
-        when(service.findById(1L)).thenReturn(Optional.of(respondida(true)));
+        MockExamHasQuestion link = respondida(true);
+        link.getMockExam().setFinishedAt(LocalDateTime.now());
+        when(service.findById(1L)).thenReturn(Optional.of(link));
 
         mockMvc.perform(get("/api/mock-exam-questions/1").with(estudante()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.correct").value(true))
+                .andExpect(jsonPath("$.question.explanation").value("Explicação"))
                 .andExpect(jsonPath("$.answerOption.letter").value("A"))
                 .andExpect(jsonPath("$.answerOption.rightAnswer").doesNotExist());
     }
 
     @Test
+    @DisplayName("antes de finalizar, o estudante não recebe correção nem explicação")
+    void deveOcultarCorrecaoDuranteProva() throws Exception {
+        when(service.findById(1L)).thenReturn(Optional.of(respondida(true)));
+
+        mockMvc.perform(get("/api/mock-exam-questions/1").with(estudante()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.correct").doesNotExist())
+                .andExpect(jsonPath("$.question.explanation").doesNotExist())
+                .andExpect(jsonPath("$.answerOption.question.explanation").doesNotExist());
+    }
+
+    @Test
+    @DisplayName("administrador pode revisar a correção antes da finalização")
+    void deveMostrarCorrecaoAoAdministrador() throws Exception {
+        when(service.findById(1L)).thenReturn(Optional.of(respondida(true)));
+
+        mockMvc.perform(get("/api/mock-exam-questions/1").with(administrador()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.correct").value(true))
+                .andExpect(jsonPath("$.question.explanation").value("Explicação"));
+    }
+
+    @Test
     @DisplayName("alternativa errada vira correct false")
     void deveMarcarErro() throws Exception {
-        when(service.findById(1L)).thenReturn(Optional.of(respondida(false)));
+        MockExamHasQuestion link = respondida(false);
+        link.getMockExam().setFinishedAt(LocalDateTime.now());
+        when(service.findById(1L)).thenReturn(Optional.of(link));
 
         mockMvc.perform(get("/api/mock-exam-questions/1").with(estudante()))
                 .andExpect(status().isOk())
@@ -126,7 +158,7 @@ class MockExamHasQuestionControllerTest {
     }
 
     private static Question questao() {
-        Question questao = new Question("Enunciado", null, (short) 2);
+        Question questao = new Question("Enunciado", "Explicação", (short) 2);
         questao.setId(7L);
         return questao;
     }

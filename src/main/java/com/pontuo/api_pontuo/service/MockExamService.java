@@ -72,11 +72,20 @@ public class MockExamService {
     public MockExam update(Long id, MockExam updated, Long userId) {
         MockExam existing = findAccessible(id);
         checkNotFinished(existing);
+        if (existing.isExpiredAt(LocalDateTime.now())) {
+            throw new IllegalArgumentException("prazo do simulado encerrado: id=" + id);
+        }
+        if (existing.isStarted() && updated.getMaxTime() != existing.getMaxTime()) {
+            throw new IllegalArgumentException("maxTime não pode ser alterado após o início: id=" + id);
+        }
 
         long linked = linkRepository.countByMockExamId(id);
         if (updated.getNumQuestions() < linked) {
             throw new IllegalArgumentException(
                     "numQuestions não pode ser menor que as questões já vinculadas: " + linked);
+        }
+        if (existing.isExpiredAt(LocalDateTime.now())) {
+            throw new IllegalArgumentException("prazo do simulado encerrado: id=" + id);
         }
 
         existing.setName(updated.getName());
@@ -124,7 +133,9 @@ public class MockExamService {
         long answered = links.stream().filter(link -> link.getAnswerOption() != null).count();
         long correct = links.stream().filter(link -> Boolean.TRUE.equals(link.getIsCorrect())).count();
 
-        mockExam.setFinishedAt(LocalDateTime.now());
+        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime deadline = mockExam.getStartedAt().plusMinutes(mockExam.getMaxTime());
+        mockExam.setFinishedAt(now.isAfter(deadline) ? deadline : now);
         mockExam.setAnsweredCount((short) answered);
         mockExam.setCorrectCount((short) correct);
         mockExam.setAccuracy(Accuracy.of(correct, mockExam.getNumQuestions()));

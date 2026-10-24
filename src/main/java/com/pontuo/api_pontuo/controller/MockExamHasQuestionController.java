@@ -105,19 +105,21 @@ public class MockExamHasQuestionController {
     }
 
     private MockExamHasQuestionResponseDTO toResponseDTO(MockExamHasQuestion entity) {
+        boolean showCorrection = Roles.isAdministrador()
+                || (entity.getMockExam() != null && entity.getMockExam().isFinished());
         return new MockExamHasQuestionResponseDTO(
                 entity.getId(),
                 entity.getAnsweredAt(),
-                // Correção congelada na resposta: é o que o estudante recebe em
-                // lugar do gabarito — nula enquanto não respondeu.
-                entity.getIsCorrect(),
+                // Correção congelada na resposta; o estudante só a recebe
+                // depois da finalização.
+                showCorrection ? entity.getIsCorrect() : null,
                 toMockExamResponseDTO(entity.getMockExam()),
-                toQuestionResponseDTO(entity.getQuestion()),
-                toAnswerOptionResponseDTO(entity.getAnswerOption()));
+                toQuestionResponseDTO(entity.getQuestion(), showCorrection),
+                toAnswerOptionResponseDTO(entity.getAnswerOption(), showCorrection));
     }
 
     /** Mesma regra do catálogo: o gabarito só sai para o administrador. */
-    private AnswerOptionResponseDTO toAnswerOptionResponseDTO(AnswerOption entity) {
+    private AnswerOptionResponseDTO toAnswerOptionResponseDTO(AnswerOption entity, boolean showCorrection) {
         if (entity == null) {
             return null;
         }
@@ -126,7 +128,7 @@ public class MockExamHasQuestionController {
                 entity.getLetter(),
                 entity.getText(),
                 Roles.isAdministrador() ? entity.isRightAnswer() : null,
-                toQuestionResponseDTO(entity.getQuestion()));
+                toQuestionResponseDTO(entity.getQuestion(), showCorrection));
     }
 
     private MockExamResponseDTO toMockExamResponseDTO(MockExam entity) {
@@ -167,14 +169,14 @@ public class MockExamHasQuestionController {
         return new UserRoleResponseDTO(entity.getId(), entity.getDescription());
     }
 
-    private QuestionResponseDTO toQuestionResponseDTO(Question entity) {
+    private QuestionResponseDTO toQuestionResponseDTO(Question entity, boolean showCorrection) {
         if (entity == null) {
             return null;
         }
         return new QuestionResponseDTO(
                 entity.getId(),
                 entity.getStatement(),
-                entity.getExplanation(),
+                showCorrection ? entity.getExplanation() : null,
                 entity.getDifficulty(),
                 entity.getCreatedAt(),
                 toEntranceExamResponseDTO(entity.getEntranceExam()),

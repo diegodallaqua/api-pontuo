@@ -26,6 +26,7 @@ import com.pontuo.api_pontuo.entity.QuestionImage;
 import com.pontuo.api_pontuo.entity.State;
 import com.pontuo.api_pontuo.entity.Subject;
 import com.pontuo.api_pontuo.entity.Topic;
+import com.pontuo.api_pontuo.security.Roles;
 import com.pontuo.api_pontuo.service.DrawnQuestion;
 import com.pontuo.api_pontuo.service.QuestionService;
 
@@ -183,7 +184,7 @@ public class QuestionController {
         return new QuestionResponseDTO(
                 entity.getId(),
                 entity.getStatement(),
-                entity.getExplanation(),
+                Roles.isAdministrador() ? entity.getExplanation() : null,
                 entity.getDifficulty(),
                 entity.getCreatedAt(),
                 toEntranceExamResponseDTO(entity.getEntranceExam()),

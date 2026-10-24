@@ -333,10 +333,10 @@ match than requested, it returns the ones that match.
 
 `rightAnswer` is only filled in for administrators, who need it to review the
 catalog; for students the field is left out of the JSON entirely, so the answer
-key cannot reach the client before the question is answered. After an option is
-marked, `/api/mock-exam-questions` returns `correct` (`true` or `false`, and
-`null` while the question is unanswered), which is the correction computed on
-the server. The grading is frozen when the answer is given (`is_correct`): if
+key cannot reach the client. Explanations are also null in catalog,
+option and image responses. In `/api/mock-exam-questions`, students receive
+`correct` and the explanation with values only after finishing; administrators can review
+them earlier. Grading is frozen when the answer is given (`is_correct`): if
 an administrator fixes the answer key later, the student's history does not
 change.
 
@@ -365,6 +365,11 @@ Rules:
 - Once finished, the mock exam and its answers do not change: `PUT` and
   `DELETE` on its questions and `PUT` on the mock exam return `409`. Deleting
   the mock exam is still allowed and removes its answers too.
+- The deadline is `startedAt + maxTime`. `maxTime` cannot change after the
+  start. After the deadline, creating, changing or deleting question links and
+  editing the mock exam return `409`. `finish` remains available and records
+  `finishedAt` at the deadline even if called later. There is no background
+  finalization job.
 - The database ensures the selected option belongs to the answered question.
   For the same reason, an option already selected in a mock exam cannot be
   moved to another question (`409`).
@@ -571,8 +576,8 @@ services: addresses are already loaded by the migrations.
 
 ## Known limitations
 
-- `maxTime` is informational: the API does not close the mock exam when time
-  runs out.
+- The API enforces the deadline on writes, but finalization still requires a
+  `finish` request; there is no background job.
 - Time spent on each question is not recorded yet; duration only exists for
   the whole mock exam.
 - There is no rate limiting or temporary lockout after failed login attempts.
