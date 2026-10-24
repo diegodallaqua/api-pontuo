@@ -24,7 +24,6 @@ A API é stateless, autenticada por JWT e separa o acesso em dois perfis:
 - [Estrutura do projeto](#estrutura-do-projeto)
 - [Padrões de projeto](#padrões-de-projeto)
 - [Pontos ainda abertos](#pontos-ainda-abertos)
-- [Licença](#licença)
 
 ## Funcionalidades
 
@@ -580,8 +579,3 @@ endereços já vêm cadastrados pelas migrations.
   falhas.
 - Não há refresh token: quando o token expira, é preciso fazer login de novo.
 - Só `/api/questions` é paginada; as outras listagens ainda devolvem todos os
-  registros.
-
-## Licença
-
-Distribuído sob a licença MIT. Veja o arquivo [LICENSE](LICENSE).

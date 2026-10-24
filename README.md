@@ -26,7 +26,6 @@ users.
 - [Project structure](#project-structure)
 - [Design patterns](#design-patterns)
 - [Known limitations](#known-limitations)
-- [License](#license)
 
 ## Features
 
@@ -584,8 +583,3 @@ services: addresses are already loaded by the migrations.
 - There is no refresh token: when the token expires, the user must log in
   again.
 - Only `/api/questions` is paginated; the other listings still return every
-  record.
-
-## License
-
-Distributed under the MIT License. See [LICENSE](LICENSE).
