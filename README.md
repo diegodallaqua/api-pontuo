@@ -266,7 +266,8 @@ affected and receives every migration from V1.
 
 Full documentation for every endpoint — request body, responses, status codes
 and a cURL example — is available in Swagger UI at
-`http://localhost:8080/swagger-ui.html` while the application is running. To
+`http://localhost:8080/swagger-ui.html` while the application is running, and
+in production at `https://api-pontuo.onrender.com/swagger-ui.html`. To
 call protected routes from it, log in, click **Authorize** and paste the
 `accessToken`. The specification lives in
 [`src/main/resources/static/openapi.yaml`](src/main/resources/static/openapi.yaml)

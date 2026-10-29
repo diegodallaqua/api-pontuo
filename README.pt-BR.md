@@ -264,7 +264,8 @@ recebe todas desde a V1.
 
 A documentação completa de cada endpoint — corpo da requisição, respostas,
 status codes e exemplo cURL — está no Swagger UI, em
-`http://localhost:8080/swagger-ui.html` com a aplicação rodando. Para chamar as
+`http://localhost:8080/swagger-ui.html` com a aplicação rodando, e em produção
+em `https://api-pontuo.onrender.com/swagger-ui.html`. Para chamar as
 rotas protegidas por ele, faça login, clique em **Authorize** e cole o
 `accessToken`. A especificação fica em
 [`src/main/resources/static/openapi.yaml`](src/main/resources/static/openapi.yaml)

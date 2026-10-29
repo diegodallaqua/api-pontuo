@@ -18,6 +18,10 @@ info:
     3. As demais rotas exigem o header `Authorization: Bearer <token>`. No Swagger UI, clique em **Authorize** e cole o token.
     4. `POST /api/auth/logout` revoga o token.
 
+    O servidor das chamadas feitas pelo "Try it out" é escolhido no seletor **Servers**: ambiente local
+    (`http://localhost:8080`) ou produção (`https://api-pontuo.onrender.com`). Os exemplos cURL usam o
+    ambiente local; para produção, troque a URL base.
+
     Os exemplos cURL usam a variável de shell `$TOKEN`:
 
     ```bash
@@ -53,6 +57,8 @@ info:
 servers:
   - url: "http://localhost:8080"
     description: Ambiente local
+  - url: "https://api-pontuo.onrender.com"
+    description: Produção (Render)
 security:
   - bearerAuth: []
 tags:
