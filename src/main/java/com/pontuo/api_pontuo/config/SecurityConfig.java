@@ -55,6 +55,18 @@ public class SecurityConfig {
     };
 
     /**
+     * Swagger UI, a configuração que ele carrega ao abrir e a especificação
+     * OpenAPI que ele exibe. O /v3/api-docs gerado automaticamente continua
+     * protegido: a especificação oficial é o openapi.yaml.
+     */
+    private static final String[] API_DOCS = {
+            "/swagger-ui.html",
+            "/swagger-ui/**",
+            "/v3/api-docs/swagger-config",
+            "/openapi.yaml"
+    };
+
+    /**
      * A API é stateless: nada de sessão ou cookie, a identidade vem apenas do
      * Bearer token. Por isso o CSRF pode ser desligado sem abrir brecha — não
      * existe credencial que o navegador envie automaticamente.
@@ -77,6 +89,8 @@ public class SecurityConfig {
                     // Únicas rotas públicas: obter um token e criar conta de estudante.
                     .requestMatchers(HttpMethod.POST, "/api/auth/login", "/api/auth/register")
                             .permitAll()
+                    // A documentação é pública; o "Try it out" envia o token normalmente.
+                    .requestMatchers(HttpMethod.GET, API_DOCS).permitAll()
                     // Precisam de token, mas de nenhuma role específica.
                     .requestMatchers("/api/auth/logout", "/api/auth/me").authenticated()
                     // Gestão de usuários e perfis é exclusiva do administrador.

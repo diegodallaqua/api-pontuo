@@ -264,6 +264,15 @@ affected and receives every migration from V1.
 
 ## Endpoints
 
+Full documentation for every endpoint — request body, responses, status codes
+and a cURL example — is available in Swagger UI at
+`http://localhost:8080/swagger-ui.html` while the application is running. To
+call protected routes from it, log in, click **Authorize** and paste the
+`accessToken`. The specification lives in
+[`src/main/resources/static/openapi.yaml`](src/main/resources/static/openapi.yaml)
+and is also served at `/openapi.yaml`; when adding or changing an endpoint,
+update that file (`OpenApiSpecTest` fails if a route is missing).
+
 Every resource follows the same CRUD pattern:
 
 | Method | Route | Response |

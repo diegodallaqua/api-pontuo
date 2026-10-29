@@ -262,6 +262,15 @@ recebe todas desde a V1.
 
 ## Endpoints
 
+A documentação completa de cada endpoint — corpo da requisição, respostas,
+status codes e exemplo cURL — está no Swagger UI, em
+`http://localhost:8080/swagger-ui.html` com a aplicação rodando. Para chamar as
+rotas protegidas por ele, faça login, clique em **Authorize** e cole o
+`accessToken`. A especificação fica em
+[`src/main/resources/static/openapi.yaml`](src/main/resources/static/openapi.yaml)
+e também é servida em `/openapi.yaml`; ao criar ou alterar um endpoint,
+atualize esse arquivo (o `OpenApiSpecTest` falha se uma rota ficar de fora).
+
 Todos os recursos seguem o mesmo padrão CRUD:
 
 | Método | Rota | Resposta |

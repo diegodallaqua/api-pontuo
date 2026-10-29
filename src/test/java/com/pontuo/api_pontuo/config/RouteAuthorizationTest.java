@@ -133,6 +133,12 @@ class RouteAuthorizationTest {
             mockMvc.perform(get("/api/auth/me")).andExpect(status().isUnauthorized());
             mockMvc.perform(post("/api/auth/logout")).andExpect(status().isUnauthorized());
         }
+
+        @Test
+        @DisplayName("especificação do Swagger é pública")
+        void deveLiberarEspecificacaoOpenApi() throws Exception {
+            mockMvc.perform(get("/openapi.yaml")).andExpect(status().isOk());
+        }
     }
 
     @Nested
