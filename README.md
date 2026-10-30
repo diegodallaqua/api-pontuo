@@ -421,11 +421,15 @@ Error responses (messages are returned in Portuguese):
 
 | Status | When | Body |
 |---|---|---|
-| `400` | Invalid request body or query parameter | One message per field or parameter: `{"stage": "stage é obrigatório"}` |
+| `400` | Invalid request body, query parameter or path id (zero, negative or non-numeric) | One message per field or parameter: `{"stage": "stage é obrigatório"}`, `{"id": "id deve ser maior que zero"}` |
+| `400` | Malformed JSON or field with the wrong type | `{"message": "..."}` |
 | `401` | Missing, invalid, expired or revoked token; or wrong login | `{"message": "..."}` |
 | `403` | Role not allowed to access the resource, or record owned by another user | `{"message": "..."}` |
-| `404` | Record or related record not found | `{"message": "..."}` (empty on `GET /{id}`) |
+| `404` | Record or related record not found, or unknown route | `{"message": "Address não encontrado: id=99"}` |
+| `405` | HTTP method not accepted by the route | `{"message": "..."}` listing the accepted methods, plus the `Allow` header |
 | `409` | Business rule violated (e.g. username already taken, mock exam already finished) or record still in use (e.g. deleting a question that is in a mock exam) | `{"message": "..."}` |
+| `415` | `Content-Type` other than `application/json` | `{"message": "..."}` |
+| `500` | Unexpected server error (details go to the log, not the response) | `{"message": "Erro interno inesperado. Tente novamente mais tarde."}` |
 
 ## Authentication and security
 

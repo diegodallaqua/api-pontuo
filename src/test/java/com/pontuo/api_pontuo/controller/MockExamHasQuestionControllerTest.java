@@ -74,12 +74,13 @@ class MockExamHasQuestionControllerTest {
     }
 
     @Test
-    @DisplayName("GET de id inexistente responde 404")
+    @DisplayName("GET de id inexistente responde 404 com mensagem")
     void deveResponder404ParaIdInexistente() throws Exception {
         when(service.findById(99L)).thenReturn(Optional.empty());
 
         mockMvc.perform(get("/api/mock-exam-questions/99").with(estudante()))
-                .andExpect(status().isNotFound());
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.message").value("MockExamHasQuestion não encontrado: id=99"));
     }
 
     @Test

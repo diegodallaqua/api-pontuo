@@ -8,10 +8,11 @@ import com.pontuo.api_pontuo.entity.Address;
 import com.pontuo.api_pontuo.entity.City;
 import com.pontuo.api_pontuo.entity.State;
 import com.pontuo.api_pontuo.service.AddressService;
+import jakarta.persistence.EntityNotFoundException;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Positive;
 
 import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -45,11 +46,11 @@ public class AddressController {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<AddressResponseDTO> findById(@PathVariable Long id) {
+    public AddressResponseDTO findById(@PathVariable @Positive(message = "id deve ser maior que zero") Long id) {
         return service.findById(id)
                 .map(this::toResponseDTO)
-                .map(ResponseEntity::ok)
-                .orElseGet(() -> ResponseEntity.notFound().build());
+                .orElseThrow(() -> new EntityNotFoundException(
+                        "Address não encontrado: id=" + id));
     }
 
     @PostMapping
@@ -60,7 +61,7 @@ public class AddressController {
     }
 
     @PutMapping("/{id}")
-    public AddressResponseDTO update(@PathVariable Long id,
+    public AddressResponseDTO update(@PathVariable @Positive(message = "id deve ser maior que zero") Long id,
                                      @Valid @RequestBody AddressRequestDTO requestDTO) {
         Address updated = service.update(id, toEntity(requestDTO), requestDTO.cityId());
         return toResponseDTO(updated);
@@ -68,7 +69,7 @@ public class AddressController {
 
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    public void delete(@PathVariable Long id) {
+    public void delete(@PathVariable @Positive(message = "id deve ser maior que zero") Long id) {
         service.delete(id);
     }
 

@@ -47,11 +47,15 @@ info:
 
     | Status | Quando | Corpo |
     |---|---|---|
-    | `400` | Corpo ou parâmetro de query inválido | Uma mensagem por campo: `{"name": "name é obrigatório"}` |
+    | `400` | Corpo, parâmetro de query ou id do path inválido (zero, negativo ou não numérico) | Uma mensagem por campo: `{"name": "name é obrigatório"}`, `{"id": "id deve ser maior que zero"}` |
+    | `400` | JSON malformado ou com campo no tipo errado | `{"message": "..."}` |
     | `401` | Sem token, token inválido/expirado/revogado, ou login incorreto | `{"message": "..."}` |
     | `403` | Perfil sem permissão, ou registro de outro usuário | `{"message": "..."}` |
-    | `404` | Registro ou registro relacionado não encontrado | `{"message": "..."}` (vazio no `GET /{id}`) |
+    | `404` | Registro ou registro relacionado não encontrado, ou rota inexistente | `{"message": "Address não encontrado: id=99"}` |
+    | `405` | Método HTTP não aceito pela rota | `{"message": "..."}`, com os métodos aceitos e o header `Allow` |
     | `409` | Regra de negócio violada ou registro em uso | `{"message": "..."}` |
+    | `415` | `Content-Type` diferente de `application/json` | `{"message": "..."}` |
+    | `500` | Erro inesperado no servidor | `{"message": "Erro interno inesperado. Tente novamente mais tarde."}` |
 
     Datas usam ISO-8601: `2026-10-28` para datas e `2026-10-28T14:30:00` (hora local do servidor, sem fuso) para data e hora.
 servers:
@@ -370,10 +374,12 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/StateResponse"
+        "400":
+          $ref: "#/components/responses/InvalidId"
         "401":
           $ref: "#/components/responses/Unauthorized"
         "404":
-          $ref: "#/components/responses/NotFoundEmpty"
+          $ref: "#/components/responses/NotFound"
     put:
       tags:
         - Estados
@@ -453,6 +459,8 @@ paths:
       responses:
         "204":
           description: "Estado excluído. Sem corpo."
+        "400":
+          $ref: "#/components/responses/InvalidId"
         "401":
           $ref: "#/components/responses/Unauthorized"
         "403":
@@ -596,10 +604,12 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/CityResponse"
+        "400":
+          $ref: "#/components/responses/InvalidId"
         "401":
           $ref: "#/components/responses/Unauthorized"
         "404":
-          $ref: "#/components/responses/NotFoundEmpty"
+          $ref: "#/components/responses/NotFound"
     put:
       tags:
         - Cidades
@@ -684,6 +694,8 @@ paths:
       responses:
         "204":
           description: "Cidade excluída. Sem corpo."
+        "400":
+          $ref: "#/components/responses/InvalidId"
         "401":
           $ref: "#/components/responses/Unauthorized"
         "403":
@@ -830,10 +842,12 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/AddressResponse"
+        "400":
+          $ref: "#/components/responses/InvalidId"
         "401":
           $ref: "#/components/responses/Unauthorized"
         "404":
-          $ref: "#/components/responses/NotFoundEmpty"
+          $ref: "#/components/responses/NotFound"
     put:
       tags:
         - "Endereços"
@@ -921,6 +935,8 @@ paths:
       responses:
         "204":
           description: "Endereço excluído. Sem corpo."
+        "400":
+          $ref: "#/components/responses/InvalidId"
         "401":
           $ref: "#/components/responses/Unauthorized"
         "403":
@@ -1056,10 +1072,12 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/InstitutionResponse"
+        "400":
+          $ref: "#/components/responses/InvalidId"
         "401":
           $ref: "#/components/responses/Unauthorized"
         "404":
-          $ref: "#/components/responses/NotFoundEmpty"
+          $ref: "#/components/responses/NotFound"
     put:
       tags:
         - "Instituições"
@@ -1145,6 +1163,8 @@ paths:
       responses:
         "204":
           description: "Instituição excluída. Sem corpo."
+        "400":
+          $ref: "#/components/responses/InvalidId"
         "401":
           $ref: "#/components/responses/Unauthorized"
         "403":
@@ -1306,10 +1326,12 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/EntranceExamResponse"
+        "400":
+          $ref: "#/components/responses/InvalidId"
         "401":
           $ref: "#/components/responses/Unauthorized"
         "404":
-          $ref: "#/components/responses/NotFoundEmpty"
+          $ref: "#/components/responses/NotFound"
     put:
       tags:
         - Vestibulares
@@ -1404,6 +1426,8 @@ paths:
       responses:
         "204":
           description: "Vestibular excluído. Sem corpo."
+        "400":
+          $ref: "#/components/responses/InvalidId"
         "401":
           $ref: "#/components/responses/Unauthorized"
         "403":
@@ -1521,10 +1545,12 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/KnowledgeAreaResponse"
+        "400":
+          $ref: "#/components/responses/InvalidId"
         "401":
           $ref: "#/components/responses/Unauthorized"
         "404":
-          $ref: "#/components/responses/NotFoundEmpty"
+          $ref: "#/components/responses/NotFound"
     put:
       tags:
         - "Áreas do conhecimento"
@@ -1604,6 +1630,8 @@ paths:
       responses:
         "204":
           description: "Área do conhecimento excluída. Sem corpo."
+        "400":
+          $ref: "#/components/responses/InvalidId"
         "401":
           $ref: "#/components/responses/Unauthorized"
         "403":
@@ -1747,10 +1775,12 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/SubjectResponse"
+        "400":
+          $ref: "#/components/responses/InvalidId"
         "401":
           $ref: "#/components/responses/Unauthorized"
         "404":
-          $ref: "#/components/responses/NotFoundEmpty"
+          $ref: "#/components/responses/NotFound"
     put:
       tags:
         - "Matérias"
@@ -1835,6 +1865,8 @@ paths:
       responses:
         "204":
           description: "Matéria excluída. Sem corpo."
+        "400":
+          $ref: "#/components/responses/InvalidId"
         "401":
           $ref: "#/components/responses/Unauthorized"
         "403":
@@ -1978,10 +2010,12 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/TopicResponse"
+        "400":
+          $ref: "#/components/responses/InvalidId"
         "401":
           $ref: "#/components/responses/Unauthorized"
         "404":
-          $ref: "#/components/responses/NotFoundEmpty"
+          $ref: "#/components/responses/NotFound"
     put:
       tags:
         - "Tópicos"
@@ -2066,6 +2100,8 @@ paths:
       responses:
         "204":
           description: "Tópico excluído. Sem corpo."
+        "400":
+          $ref: "#/components/responses/InvalidId"
         "401":
           $ref: "#/components/responses/Unauthorized"
         "403":
@@ -2431,10 +2467,12 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/QuestionResponse"
+        "400":
+          $ref: "#/components/responses/InvalidId"
         "401":
           $ref: "#/components/responses/Unauthorized"
         "404":
-          $ref: "#/components/responses/NotFoundEmpty"
+          $ref: "#/components/responses/NotFound"
     put:
       tags:
         - "Questões"
@@ -2538,6 +2576,8 @@ paths:
       responses:
         "204":
           description: "Questão excluída. Sem corpo."
+        "400":
+          $ref: "#/components/responses/InvalidId"
         "401":
           $ref: "#/components/responses/Unauthorized"
         "403":
@@ -2702,10 +2742,12 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/AnswerOptionResponse"
+        "400":
+          $ref: "#/components/responses/InvalidId"
         "401":
           $ref: "#/components/responses/Unauthorized"
         "404":
-          $ref: "#/components/responses/NotFoundEmpty"
+          $ref: "#/components/responses/NotFound"
     put:
       tags:
         - Alternativas
@@ -2813,6 +2855,8 @@ paths:
       responses:
         "204":
           description: "Alternativa excluída. Sem corpo."
+        "400":
+          $ref: "#/components/responses/InvalidId"
         "401":
           $ref: "#/components/responses/Unauthorized"
         "403":
@@ -2961,10 +3005,12 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/QuestionImageResponse"
+        "400":
+          $ref: "#/components/responses/InvalidId"
         "401":
           $ref: "#/components/responses/Unauthorized"
         "404":
-          $ref: "#/components/responses/NotFoundEmpty"
+          $ref: "#/components/responses/NotFound"
     put:
       tags:
         - "Imagens de questões"
@@ -3048,6 +3094,8 @@ paths:
       responses:
         "204":
           description: "Imagem de questão excluída. Sem corpo."
+        "400":
+          $ref: "#/components/responses/InvalidId"
         "401":
           $ref: "#/components/responses/Unauthorized"
         "403":
@@ -3201,6 +3249,8 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/MockExamResponse"
+        "400":
+          $ref: "#/components/responses/InvalidId"
         "401":
           $ref: "#/components/responses/Unauthorized"
         "403":
@@ -3215,7 +3265,7 @@ paths:
                   value:
                     message: "Acesso negado: o registro pertence a outro usuário."
         "404":
-          $ref: "#/components/responses/NotFoundEmpty"
+          $ref: "#/components/responses/NotFound"
     put:
       tags:
         - Simulados
@@ -3326,6 +3376,8 @@ paths:
       responses:
         "204":
           description: "Simulado e respostas excluídos. Sem corpo."
+        "400":
+          $ref: "#/components/responses/InvalidId"
         "401":
           $ref: "#/components/responses/Unauthorized"
         "403":
@@ -3373,6 +3425,8 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/MockExamResponse"
+        "400":
+          $ref: "#/components/responses/InvalidId"
         "401":
           $ref: "#/components/responses/Unauthorized"
         "403":
@@ -3428,6 +3482,8 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/MockExamResultResponse"
+        "400":
+          $ref: "#/components/responses/InvalidId"
         "401":
           $ref: "#/components/responses/Unauthorized"
         "403":
@@ -3490,6 +3546,8 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/MockExamResultResponse"
+        "400":
+          $ref: "#/components/responses/InvalidId"
         "401":
           $ref: "#/components/responses/Unauthorized"
         "403":
@@ -3504,7 +3562,7 @@ paths:
                   value:
                     message: "Acesso negado: o registro pertence a outro usuário."
         "404":
-          $ref: "#/components/responses/NotFoundEmpty"
+          $ref: "#/components/responses/NotFound"
   /api/mock-exam-questions:
     get:
       tags:
@@ -3706,6 +3764,8 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/MockExamQuestionResponse"
+        "400":
+          $ref: "#/components/responses/InvalidId"
         "401":
           $ref: "#/components/responses/Unauthorized"
         "403":
@@ -3717,7 +3777,7 @@ paths:
               example:
                 message: "Acesso negado: o registro pertence a outro usuário."
         "404":
-          $ref: "#/components/responses/NotFoundEmpty"
+          $ref: "#/components/responses/NotFound"
     put:
       tags:
         - "Questões do simulado"
@@ -3842,6 +3902,8 @@ paths:
       responses:
         "204":
           description: "Vínculo excluído. Sem corpo."
+        "400":
+          $ref: "#/components/responses/InvalidId"
         "401":
           $ref: "#/components/responses/Unauthorized"
         "403":
@@ -3936,6 +3998,8 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/PerformanceOverviewResponse"
+        "400":
+          $ref: "#/components/responses/InvalidId"
         "401":
           $ref: "#/components/responses/Unauthorized"
         "403":
@@ -4029,6 +4093,8 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/PerformanceItemResponse"
+        "400":
+          $ref: "#/components/responses/InvalidId"
         "401":
           $ref: "#/components/responses/Unauthorized"
         "403":
@@ -4138,6 +4204,8 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/PerformanceItemResponse"
+        "400":
+          $ref: "#/components/responses/InvalidId"
         "401":
           $ref: "#/components/responses/Unauthorized"
         "403":
@@ -4247,6 +4315,8 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/PerformanceItemResponse"
+        "400":
+          $ref: "#/components/responses/InvalidId"
         "401":
           $ref: "#/components/responses/Unauthorized"
         "403":
@@ -4340,6 +4410,8 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/PerformanceItemResponse"
+        "400":
+          $ref: "#/components/responses/InvalidId"
         "401":
           $ref: "#/components/responses/Unauthorized"
         "403":
@@ -4580,6 +4652,8 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/EvolutionPointResponse"
+        "400":
+          $ref: "#/components/responses/InvalidId"
         "401":
           $ref: "#/components/responses/Unauthorized"
         "403":
@@ -4737,12 +4811,14 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/UserResponse"
+        "400":
+          $ref: "#/components/responses/InvalidId"
         "401":
           $ref: "#/components/responses/Unauthorized"
         "403":
           $ref: "#/components/responses/Forbidden"
         "404":
-          $ref: "#/components/responses/NotFoundEmpty"
+          $ref: "#/components/responses/NotFound"
     put:
       tags:
         - "Usuários"
@@ -4847,6 +4923,8 @@ paths:
       responses:
         "204":
           description: "Usuário excluído. Sem corpo."
+        "400":
+          $ref: "#/components/responses/InvalidId"
         "401":
           $ref: "#/components/responses/Unauthorized"
         "403":
@@ -4968,12 +5046,14 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/UserRoleResponse"
+        "400":
+          $ref: "#/components/responses/InvalidId"
         "401":
           $ref: "#/components/responses/Unauthorized"
         "403":
           $ref: "#/components/responses/Forbidden"
         "404":
-          $ref: "#/components/responses/NotFoundEmpty"
+          $ref: "#/components/responses/NotFound"
     put:
       tags:
         - "Perfis de usuário"
@@ -5055,6 +5135,8 @@ paths:
       responses:
         "204":
           description: "Perfil excluído. Sem corpo."
+        "400":
+          $ref: "#/components/responses/InvalidId"
         "401":
           $ref: "#/components/responses/Unauthorized"
         "403":
@@ -5087,19 +5169,21 @@ components:
       name: id
       in: path
       required: true
-      description: Id do registro.
+      description: "Id do registro (inteiro maior que zero)."
       schema:
         type: integer
         format: int64
+        minimum: 1
       example: 1
     UserId:
       name: userId
       in: path
       required: true
-      description: "Id do usuário."
+      description: "Id do usuário (inteiro maior que zero)."
       schema:
         type: integer
         format: int64
+        minimum: 1
       example: 7
     From:
       name: from
@@ -5141,8 +5225,29 @@ components:
             $ref: "#/components/schemas/ErrorMessage"
           example:
             message: "Acesso negado: seu perfil não tem permissão para este recurso."
-    NotFoundEmpty:
-      description: "Registro não encontrado. Corpo vazio."
+    NotFound:
+      description: "Registro não encontrado. A mensagem diz qual registro e qual id."
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorMessage"
+          example:
+            message: "Address não encontrado: id=99"
+    InvalidId:
+      description: "Id do path inválido: zero, negativo ou não numérico. A chave é o nome do parâmetro (`id` ou `userId`)."
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ValidationErrors"
+          examples:
+            naoPositivo:
+              summary: Id zero ou negativo
+              value:
+                id: "id deve ser maior que zero"
+            naoNumerico:
+              summary: Id não numérico
+              value:
+                id: "id deve ser um número inteiro (recebido: abc)"
   schemas:
     ErrorMessage:
       type: object

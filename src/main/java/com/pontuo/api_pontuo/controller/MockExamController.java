@@ -10,10 +10,11 @@ import com.pontuo.api_pontuo.entity.User;
 import com.pontuo.api_pontuo.entity.UserRole;
 import com.pontuo.api_pontuo.service.MockExamService;
 
+import jakarta.persistence.EntityNotFoundException;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Positive;
 
 import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -40,11 +41,11 @@ public class MockExamController {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<MockExamResponseDTO> findById(@PathVariable Long id) {
+    public MockExamResponseDTO findById(@PathVariable @Positive(message = "id deve ser maior que zero") Long id) {
         return service.findById(id)
                 .map(this::toResponseDTO)
-                .map(ResponseEntity::ok)
-                .orElseGet(() -> ResponseEntity.notFound().build());
+                .orElseThrow(() -> new EntityNotFoundException(
+                        "MockExam não encontrado: id=" + id));
     }
 
     @PostMapping
@@ -55,7 +56,7 @@ public class MockExamController {
     }
 
     @PutMapping("/{id}")
-    public MockExamResponseDTO update(@PathVariable Long id,
+    public MockExamResponseDTO update(@PathVariable @Positive(message = "id deve ser maior que zero") Long id,
                                       @Valid @RequestBody MockExamRequestDTO requestDTO) {
         MockExam updated = service.update(id, toEntity(requestDTO), requestDTO.userId());
         return toResponseDTO(updated);
@@ -63,31 +64,31 @@ public class MockExamController {
 
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    public void delete(@PathVariable Long id) {
+    public void delete(@PathVariable @Positive(message = "id deve ser maior que zero") Long id) {
         service.delete(id);
     }
 
     /** Registra o início. A partir daqui as questões podem ser respondidas. */
     @PostMapping("/{id}/start")
-    public MockExamResponseDTO start(@PathVariable Long id) {
+    public MockExamResponseDTO start(@PathVariable @Positive(message = "id deve ser maior que zero") Long id) {
         return toResponseDTO(service.start(id));
     }
 
     /** Corrige, trava o simulado e devolve o boletim. */
     @PostMapping("/{id}/finish")
-    public MockExamResultResponseDTO finish(@PathVariable Long id) {
+    public MockExamResultResponseDTO finish(@PathVariable @Positive(message = "id deve ser maior que zero") Long id) {
         MockExam finished = service.finish(id);
         return new MockExamResultResponseDTO(toResponseDTO(finished), service.findSubjectResults(id));
     }
 
     /** Boletim do simulado; a lista de matérias fica vazia até a finalização. */
     @GetMapping("/{id}/result")
-    public ResponseEntity<MockExamResultResponseDTO> result(@PathVariable Long id) {
+    public MockExamResultResponseDTO result(@PathVariable @Positive(message = "id deve ser maior que zero") Long id) {
         return service.findById(id)
                 .map(mockExam -> new MockExamResultResponseDTO(
                         toResponseDTO(mockExam), service.findSubjectResults(id)))
-                .map(ResponseEntity::ok)
-                .orElseGet(() -> ResponseEntity.notFound().build());
+                .orElseThrow(() -> new EntityNotFoundException(
+                        "MockExam não encontrado: id=" + id));
     }
 
     private MockExamResponseDTO toResponseDTO(MockExam entity) {

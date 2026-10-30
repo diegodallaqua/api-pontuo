@@ -24,10 +24,11 @@ import com.pontuo.api_pontuo.entity.Topic;
 import com.pontuo.api_pontuo.security.Roles;
 import com.pontuo.api_pontuo.service.QuestionImageService;
 
+import jakarta.persistence.EntityNotFoundException;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Positive;
 
 import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -54,11 +55,11 @@ public class QuestionImageController {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<QuestionImageResponseDTO> findById(@PathVariable Long id) {
+    public QuestionImageResponseDTO findById(@PathVariable @Positive(message = "id deve ser maior que zero") Long id) {
         return service.findById(id)
                 .map(this::toResponseDTO)
-                .map(ResponseEntity::ok)
-                .orElseGet(() -> ResponseEntity.notFound().build());
+                .orElseThrow(() -> new EntityNotFoundException(
+                        "QuestionImage não encontrada: id=" + id));
     }
 
     @PostMapping
@@ -69,7 +70,7 @@ public class QuestionImageController {
     }
 
     @PutMapping("/{id}")
-    public QuestionImageResponseDTO update(@PathVariable Long id,
+    public QuestionImageResponseDTO update(@PathVariable @Positive(message = "id deve ser maior que zero") Long id,
                                            @Valid @RequestBody QuestionImageRequestDTO requestDTO) {
         QuestionImage updated = service.update(id, toEntity(requestDTO), requestDTO.questionId());
         return toResponseDTO(updated);
@@ -77,7 +78,7 @@ public class QuestionImageController {
 
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    public void delete(@PathVariable Long id) {
+    public void delete(@PathVariable @Positive(message = "id deve ser maior que zero") Long id) {
         service.delete(id);
     }
 

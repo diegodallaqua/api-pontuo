@@ -416,11 +416,15 @@ Respostas de erro:
 
 | Status | Quando | Corpo |
 |---|---|---|
-| `400` | Corpo da requisição ou parâmetro de query inválido | Mensagem por campo ou parâmetro: `{"stage": "stage é obrigatório"}` |
+| `400` | Corpo da requisição, parâmetro de query ou id do path inválido (zero, negativo ou não numérico) | Mensagem por campo ou parâmetro: `{"stage": "stage é obrigatório"}`, `{"id": "id deve ser maior que zero"}` |
+| `400` | JSON malformado ou com campo no tipo errado | `{"message": "..."}` |
 | `401` | Sem token, token inválido, expirado ou revogado; ou login incorreto | `{"message": "..."}` |
 | `403` | Perfil sem permissão para o recurso, ou registro de outro usuário | `{"message": "..."}` |
-| `404` | Registro ou registro relacionado não encontrado | `{"message": "..."}` (vazio no `GET /{id}`) |
+| `404` | Registro ou registro relacionado não encontrado, ou rota inexistente | `{"message": "Address não encontrado: id=99"}` |
+| `405` | Método HTTP não aceito pela rota | `{"message": "..."}` com os métodos aceitos, mais o header `Allow` |
 | `409` | Regra de negócio violada (ex.: username já cadastrado, simulado já finalizado) ou registro ainda em uso (ex.: apagar questão que está em algum simulado) | `{"message": "..."}` |
+| `415` | `Content-Type` diferente de `application/json` | `{"message": "..."}` |
+| `500` | Erro inesperado no servidor (o detalhe vai para o log, não para a resposta) | `{"message": "Erro interno inesperado. Tente novamente mais tarde."}` |
 
 ## Autenticação e segurança
 

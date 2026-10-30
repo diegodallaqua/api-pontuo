@@ -6,10 +6,11 @@ import com.pontuo.api_pontuo.dto.UserRoleResponseDTO;
 import com.pontuo.api_pontuo.entity.User;
 import com.pontuo.api_pontuo.entity.UserRole;
 import com.pontuo.api_pontuo.service.UserService;
+import jakarta.persistence.EntityNotFoundException;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Positive;
 
 import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -36,11 +37,11 @@ public class UserController {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<UserResponseDTO> findById(@PathVariable Long id) {
+    public UserResponseDTO findById(@PathVariable @Positive(message = "id deve ser maior que zero") Long id) {
         return service.findById(id)
                 .map(this::toResponseDTO)
-                .map(ResponseEntity::ok)
-                .orElseGet(() -> ResponseEntity.notFound().build());
+                .orElseThrow(() -> new EntityNotFoundException(
+                        "User não encontrado: id=" + id));
     }
 
     @PostMapping
@@ -51,7 +52,7 @@ public class UserController {
     }
 
     @PutMapping("/{id}")
-    public UserResponseDTO update(@PathVariable Long id,
+    public UserResponseDTO update(@PathVariable @Positive(message = "id deve ser maior que zero") Long id,
                                             @Valid @RequestBody UserRequestDTO requestDTO) {
         User updated = service.update(id, toEntity(requestDTO), requestDTO.userRoleId());
         return toResponseDTO(updated);
@@ -59,7 +60,7 @@ public class UserController {
 
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    public void delete(@PathVariable Long id) {
+    public void delete(@PathVariable @Positive(message = "id deve ser maior que zero") Long id) {
         service.delete(id);
     }
 

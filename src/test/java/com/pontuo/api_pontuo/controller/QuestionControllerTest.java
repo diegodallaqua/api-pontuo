@@ -29,6 +29,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import java.util.List;
 import java.util.Optional;
 
+import static org.hamcrest.Matchers.startsWith;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
@@ -291,13 +292,70 @@ class QuestionControllerTest {
     class Erros {
 
         @Test
-        @DisplayName("GET de id inexistente responde 404 sem corpo")
-        void deveResponder404SemCorpo() throws Exception {
+        @DisplayName("GET de id inexistente responde 404 com mensagem")
+        void deveResponder404ComMensagem() throws Exception {
             when(service.findById(99L)).thenReturn(Optional.empty());
 
             mockMvc.perform(get("/api/questions/99").with(administrador()))
                     .andExpect(status().isNotFound())
-                    .andExpect(content().string(""));
+                    .andExpect(jsonPath("$.message").value("Question não encontrada: id=99"));
+        }
+
+        @Test
+        @DisplayName("GET de id zero ou negativo responde 400, sem chamar o serviço")
+        void deveResponder400ParaIdNaoPositivo() throws Exception {
+            for (String id : List.of("0", "-1")) {
+                mockMvc.perform(get("/api/questions/" + id).with(administrador()))
+                        .andExpect(status().isBadRequest())
+                        .andExpect(jsonPath("$.id").value("id deve ser maior que zero"));
+            }
+
+            verifyNoInteractions(service);
+        }
+
+        @Test
+        @DisplayName("GET de id não numérico responde 400 dizendo o tipo esperado")
+        void deveResponder400ParaIdNaoNumerico() throws Exception {
+            mockMvc.perform(get("/api/questions/abc").with(administrador()))
+                    .andExpect(status().isBadRequest())
+                    .andExpect(jsonPath("$.id").value("id deve ser um número inteiro (recebido: abc)"));
+
+            verifyNoInteractions(service);
+        }
+
+        @Test
+        @DisplayName("PUT com id negativo e corpo inválido aponta o id e cada campo")
+        void deveResponder400ParaIdECorpoInvalidos() throws Exception {
+            mockMvc.perform(put("/api/questions/-1").with(administrador())
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content("{\"statement\": \"\", \"difficulty\": 4}"))
+                    .andExpect(status().isBadRequest())
+                    .andExpect(jsonPath("$.id").value("id deve ser maior que zero"))
+                    .andExpect(jsonPath("$.statement").value("statement é obrigatório"))
+                    .andExpect(jsonPath("$.difficulty").value("difficulty deve estar entre 1 e 3"));
+
+            verifyNoInteractions(service);
+        }
+
+        @Test
+        @DisplayName("JSON malformado responde 400 com mensagem")
+        void deveResponder400ParaJsonMalformado() throws Exception {
+            mockMvc.perform(post("/api/questions").with(administrador())
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content("{\"statement\": "))
+                    .andExpect(status().isBadRequest())
+                    .andExpect(jsonPath("$.message").exists());
+
+            verifyNoInteractions(service);
+        }
+
+        @Test
+        @DisplayName("método não suportado na rota responde 405 com os métodos aceitos")
+        void deveResponder405() throws Exception {
+            mockMvc.perform(post("/api/questions/1").with(administrador()))
+                    .andExpect(status().isMethodNotAllowed())
+                    .andExpect(jsonPath("$.message").value(
+                            startsWith("Método POST não suportado nesta rota.")));
         }
 
         @Test

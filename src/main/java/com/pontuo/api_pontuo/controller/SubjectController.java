@@ -6,10 +6,11 @@ import com.pontuo.api_pontuo.dto.SubjectResponseDTO;
 import com.pontuo.api_pontuo.entity.KnowledgeArea;
 import com.pontuo.api_pontuo.entity.Subject;
 import com.pontuo.api_pontuo.service.SubjectService;
+import jakarta.persistence.EntityNotFoundException;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Positive;
 
 import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -36,11 +37,11 @@ public class SubjectController {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<SubjectResponseDTO> findById(@PathVariable Long id) {
+    public SubjectResponseDTO findById(@PathVariable @Positive(message = "id deve ser maior que zero") Long id) {
         return service.findById(id)
                 .map(this::toResponseDTO)
-                .map(ResponseEntity::ok)
-                .orElseGet(() -> ResponseEntity.notFound().build());
+                .orElseThrow(() -> new EntityNotFoundException(
+                        "Subject não encontrada: id=" + id));
     }
 
     @PostMapping
@@ -51,7 +52,7 @@ public class SubjectController {
     }
 
     @PutMapping("/{id}")
-    public SubjectResponseDTO update(@PathVariable Long id,
+    public SubjectResponseDTO update(@PathVariable @Positive(message = "id deve ser maior que zero") Long id,
                                             @Valid @RequestBody SubjectRequestDTO requestDTO) {
         Subject updated = service.update(id, toEntity(requestDTO), requestDTO.knowledgeAreaId());
         return toResponseDTO(updated);
@@ -59,7 +60,7 @@ public class SubjectController {
 
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    public void delete(@PathVariable Long id) {
+    public void delete(@PathVariable @Positive(message = "id deve ser maior que zero") Long id) {
         service.delete(id);
     }
 

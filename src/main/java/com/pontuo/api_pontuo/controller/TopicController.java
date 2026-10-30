@@ -9,10 +9,11 @@ import com.pontuo.api_pontuo.entity.Subject;
 import com.pontuo.api_pontuo.entity.Topic;
 
 import com.pontuo.api_pontuo.service.TopicService;
+import jakarta.persistence.EntityNotFoundException;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Positive;
 
 import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -39,11 +40,11 @@ public class TopicController {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<TopicResponseDTO> findById(@PathVariable Long id) {
+    public TopicResponseDTO findById(@PathVariable @Positive(message = "id deve ser maior que zero") Long id) {
         return service.findById(id)
                 .map(this::toResponseDTO)
-                .map(ResponseEntity::ok)
-                .orElseGet(() -> ResponseEntity.notFound().build());
+                .orElseThrow(() -> new EntityNotFoundException(
+                        "Topic não encontrada: id=" + id));
     }
 
     @PostMapping
@@ -54,7 +55,7 @@ public class TopicController {
     }
 
     @PutMapping("/{id}")
-    public TopicResponseDTO update(@PathVariable Long id,
+    public TopicResponseDTO update(@PathVariable @Positive(message = "id deve ser maior que zero") Long id,
                                             @Valid @RequestBody TopicRequestDTO requestDTO) {
         Topic updated = service.update(id, toEntity(requestDTO), requestDTO.subjectId());
         return toResponseDTO(updated);
@@ -62,7 +63,7 @@ public class TopicController {
 
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    public void delete(@PathVariable Long id) {
+    public void delete(@PathVariable @Positive(message = "id deve ser maior que zero") Long id) {
         service.delete(id);
     }
 

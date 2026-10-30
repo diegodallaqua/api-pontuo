@@ -5,15 +5,23 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.core.MethodParameter;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.validation.BeanPropertyBindingResult;
 import org.springframework.validation.FieldError;
+import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.MissingServletRequestParameterException;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 
+import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -100,7 +108,77 @@ class ApiExceptionHandlerTest {
                         "password", "password deve ter entre 8 e 72 caracteres"), resposta.getBody()));
     }
 
+    @Test
+    @DisplayName("id que não converte para número vira 400 dizendo o tipo esperado")
+    void deveResponder400ParaTipoInvalido() throws NoSuchMethodException {
+        MethodParameter parametro = new MethodParameter(
+                ApiExceptionHandlerTest.class.getDeclaredMethod("endpointComId", Long.class), 0);
+
+        ResponseEntity<Map<String, String>> resposta = handler.handleTypeMismatch(
+                new MethodArgumentTypeMismatchException("abc", Long.class, "id", parametro, null));
+
+        assertAll(
+                () -> assertEquals(HttpStatus.BAD_REQUEST, resposta.getStatusCode()),
+                () -> assertEquals(Map.of("id", "id deve ser um número inteiro (recebido: abc)"),
+                        resposta.getBody()));
+    }
+
+    @Test
+    @DisplayName("parâmetro obrigatório ausente vira 400 com o nome do parâmetro")
+    void deveResponder400ParaParametroAusente() {
+        ResponseEntity<Map<String, String>> resposta = handler.handleMissingParameter(
+                new MissingServletRequestParameterException("size", "int"));
+
+        assertAll(
+                () -> assertEquals(HttpStatus.BAD_REQUEST, resposta.getStatusCode()),
+                () -> assertEquals(Map.of("size", "size é obrigatório"), resposta.getBody()));
+    }
+
+    @Test
+    @DisplayName("rota inexistente vira 404 com o método e o caminho pedidos")
+    void deveResponder404ParaRotaInexistente() {
+        MockHttpServletRequest request = new MockHttpServletRequest("GET", "/api/enderecos");
+
+        ResponseEntity<Map<String, String>> resposta = handler.handleNoRoute(
+                new NoResourceFoundException(HttpMethod.GET, "/api/enderecos", "api/enderecos"), request);
+
+        assertAll(
+                () -> assertEquals(HttpStatus.NOT_FOUND, resposta.getStatusCode()),
+                () -> assertEquals(Map.of("message", "Rota não encontrada: GET /api/enderecos"),
+                        resposta.getBody()));
+    }
+
+    @Test
+    @DisplayName("método não suportado vira 405 listando os aceitos e com o header Allow")
+    void deveResponder405() {
+        ResponseEntity<Map<String, String>> resposta = handler.handleMethodNotSupported(
+                new HttpRequestMethodNotSupportedException("PATCH", List.of("GET", "PUT")));
+
+        assertAll(
+                () -> assertEquals(HttpStatus.METHOD_NOT_ALLOWED, resposta.getStatusCode()),
+                () -> assertEquals(
+                        Map.of("message", "Método PATCH não suportado nesta rota. Métodos aceitos: GET, PUT."),
+                        resposta.getBody()),
+                () -> assertEquals(Set.of(HttpMethod.GET, HttpMethod.PUT), resposta.getHeaders().getAllow()));
+    }
+
+    @Test
+    @DisplayName("erro inesperado vira 500 genérico, sem expor o detalhe interno")
+    void deveResponder500SemDetalhe() {
+        ResponseEntity<Map<String, String>> resposta =
+                handler.handleUnexpected(new NullPointerException("campo x nulo"));
+
+        assertAll(
+                () -> assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, resposta.getStatusCode()),
+                () -> assertEquals(Map.of("message", "Erro interno inesperado. Tente novamente mais tarde."),
+                        resposta.getBody()));
+    }
+
     @SuppressWarnings("unused")
     private void endpointFicticio(Object requestDTO) {
+    }
+
+    @SuppressWarnings("unused")
+    private void endpointComId(Long id) {
     }
 }

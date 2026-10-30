@@ -13,10 +13,11 @@ import com.pontuo.api_pontuo.entity.Institution;
 import com.pontuo.api_pontuo.entity.State;
 import com.pontuo.api_pontuo.service.EntranceExamService;
 
+import jakarta.persistence.EntityNotFoundException;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Positive;
 
 import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -49,11 +50,11 @@ public class EntranceExamController {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<EntranceExamResponseDTO> findById(@PathVariable Long id) {
+    public EntranceExamResponseDTO findById(@PathVariable @Positive(message = "id deve ser maior que zero") Long id) {
         return service.findById(id)
                 .map(this::toResponseDTO)
-                .map(ResponseEntity::ok)
-                .orElseGet(() -> ResponseEntity.notFound().build());
+                .orElseThrow(() -> new EntityNotFoundException(
+                        "EntranceExam não encontrado: id=" + id));
     }
 
     @PostMapping
@@ -64,7 +65,7 @@ public class EntranceExamController {
     }
 
     @PutMapping("/{id}")
-    public EntranceExamResponseDTO update(@PathVariable Long id,
+    public EntranceExamResponseDTO update(@PathVariable @Positive(message = "id deve ser maior que zero") Long id,
                                      @Valid @RequestBody EntranceExamRequestDTO requestDTO) {
         EntranceExam updated = service.update(id, toEntity(requestDTO), requestDTO.institutionId());
         return toResponseDTO(updated);
@@ -72,7 +73,7 @@ public class EntranceExamController {
 
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    public void delete(@PathVariable Long id) {
+    public void delete(@PathVariable @Positive(message = "id deve ser maior que zero") Long id) {
         service.delete(id);
     }
 

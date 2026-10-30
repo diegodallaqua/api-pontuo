@@ -8,6 +8,7 @@ import com.pontuo.api_pontuo.service.PerformanceService;
 
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.Positive;
 
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -40,7 +41,8 @@ public class PerformanceController {
 
     @GetMapping({"/me/overview", "/users/{userId}/overview"})
     public PerformanceOverviewResponseDTO overview(
-            @PathVariable(required = false) Long userId,
+            @PathVariable(required = false)
+            @Positive(message = "userId deve ser maior que zero") Long userId,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to) {
         return service.overview(userId, new PerformanceFilterDTO(from, to, null));
@@ -48,7 +50,8 @@ public class PerformanceController {
 
     @GetMapping({"/me/knowledge-areas", "/users/{userId}/knowledge-areas"})
     public List<PerformanceItemResponseDTO> byKnowledgeArea(
-            @PathVariable(required = false) Long userId,
+            @PathVariable(required = false)
+            @Positive(message = "userId deve ser maior que zero") Long userId,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to,
             @RequestParam(required = false) Long entranceExamId) {
@@ -57,7 +60,8 @@ public class PerformanceController {
 
     @GetMapping({"/me/subjects", "/users/{userId}/subjects"})
     public List<PerformanceItemResponseDTO> bySubject(
-            @PathVariable(required = false) Long userId,
+            @PathVariable(required = false)
+            @Positive(message = "userId deve ser maior que zero") Long userId,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to,
             @RequestParam(required = false) Long entranceExamId,
@@ -67,7 +71,8 @@ public class PerformanceController {
 
     @GetMapping({"/me/topics", "/users/{userId}/topics"})
     public List<PerformanceItemResponseDTO> byTopic(
-            @PathVariable(required = false) Long userId,
+            @PathVariable(required = false)
+            @Positive(message = "userId deve ser maior que zero") Long userId,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to,
             @RequestParam(required = false) Long entranceExamId,
@@ -77,7 +82,8 @@ public class PerformanceController {
 
     @GetMapping({"/me/difficulty", "/users/{userId}/difficulty"})
     public List<PerformanceItemResponseDTO> byDifficulty(
-            @PathVariable(required = false) Long userId,
+            @PathVariable(required = false)
+            @Positive(message = "userId deve ser maior que zero") Long userId,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to,
             @RequestParam(required = false) Long entranceExamId) {
@@ -86,7 +92,8 @@ public class PerformanceController {
 
     @GetMapping({"/me/weak-topics", "/users/{userId}/weak-topics"})
     public List<PerformanceItemResponseDTO> weakTopics(
-            @PathVariable(required = false) Long userId,
+            @PathVariable(required = false)
+            @Positive(message = "userId deve ser maior que zero") Long userId,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to,
             @RequestParam(required = false) Long entranceExamId,
@@ -100,7 +107,8 @@ public class PerformanceController {
 
     @GetMapping({"/me/evolution", "/users/{userId}/evolution"})
     public List<EvolutionPointResponseDTO> evolution(
-            @PathVariable(required = false) Long userId,
+            @PathVariable(required = false)
+            @Positive(message = "userId deve ser maior que zero") Long userId,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to,
             @RequestParam(required = false) Long subjectId) {

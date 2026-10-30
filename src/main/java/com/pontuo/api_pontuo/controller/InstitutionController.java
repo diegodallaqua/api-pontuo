@@ -11,10 +11,11 @@ import com.pontuo.api_pontuo.entity.Institution;
 import com.pontuo.api_pontuo.entity.State;
 import com.pontuo.api_pontuo.service.InstitutionService;
 
+import jakarta.persistence.EntityNotFoundException;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Positive;
 
 import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -41,11 +42,11 @@ public class InstitutionController {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<InstitutionResponseDTO> findById(@PathVariable Long id) {
+    public InstitutionResponseDTO findById(@PathVariable @Positive(message = "id deve ser maior que zero") Long id) {
         return service.findById(id)
                 .map(this::toResponseDTO)
-                .map(ResponseEntity::ok)
-                .orElseGet(() -> ResponseEntity.notFound().build());
+                .orElseThrow(() -> new EntityNotFoundException(
+                        "Institution não encontrada: id=" + id));
     }
 
     @PostMapping
@@ -56,7 +57,7 @@ public class InstitutionController {
     }
 
     @PutMapping("/{id}")
-    public InstitutionResponseDTO update(@PathVariable Long id,
+    public InstitutionResponseDTO update(@PathVariable @Positive(message = "id deve ser maior que zero") Long id,
                                      @Valid @RequestBody InstitutionRequestDTO requestDTO) {
         Institution updated = service.update(id, toEntity(requestDTO), requestDTO.addressId());
         return toResponseDTO(updated);
@@ -64,7 +65,7 @@ public class InstitutionController {
 
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    public void delete(@PathVariable Long id) {
+    public void delete(@PathVariable @Positive(message = "id deve ser maior que zero") Long id) {
         service.delete(id);
     }
 

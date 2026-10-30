@@ -30,14 +30,15 @@ import com.pontuo.api_pontuo.security.Roles;
 import com.pontuo.api_pontuo.service.DrawnQuestion;
 import com.pontuo.api_pontuo.service.QuestionService;
 
+import jakarta.persistence.EntityNotFoundException;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.Positive;
 
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -116,11 +117,11 @@ public class QuestionController {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<QuestionResponseDTO> findById(@PathVariable Long id) {
+    public QuestionResponseDTO findById(@PathVariable @Positive(message = "id deve ser maior que zero") Long id) {
         return service.findById(id)
                 .map(this::toResponseDTO)
-                .map(ResponseEntity::ok)
-                .orElseGet(() -> ResponseEntity.notFound().build());
+                .orElseThrow(() -> new EntityNotFoundException(
+                        "Question não encontrada: id=" + id));
     }
 
     @PostMapping
@@ -135,7 +136,7 @@ public class QuestionController {
     }
 
     @PutMapping("/{id}")
-    public QuestionResponseDTO update(@PathVariable Long id,
+    public QuestionResponseDTO update(@PathVariable @Positive(message = "id deve ser maior que zero") Long id,
                                       @Valid @RequestBody QuestionRequestDTO requestDTO) {
         Question updated = service.update(
                 id,
@@ -148,7 +149,7 @@ public class QuestionController {
 
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    public void delete(@PathVariable Long id) {
+    public void delete(@PathVariable @Positive(message = "id deve ser maior que zero") Long id) {
         service.delete(id);
     }
 
