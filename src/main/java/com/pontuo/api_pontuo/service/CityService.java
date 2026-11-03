@@ -3,11 +3,13 @@ package com.pontuo.api_pontuo.service;
 import com.pontuo.api_pontuo.entity.State;
 import com.pontuo.api_pontuo.entity.City;
 import com.pontuo.api_pontuo.repository.CityRepository;
+import com.pontuo.api_pontuo.repository.LikePattern;
 import com.pontuo.api_pontuo.repository.StateRepository;
 import jakarta.persistence.EntityNotFoundException;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
-import java.util.List;
 import java.util.Optional;
 
 @Service
@@ -22,16 +24,16 @@ public class CityService {
         this.stateRepository = stateRepository;
     }
 
-    public List<City> findAll() {
-        return repository.findAll();
+    public Page<City> findAll(String search, Pageable pageable) {
+        return repository.search(null, LikePattern.contains(search), pageable);
     }
 
-    public List<City> findByStateId(Long stateId) {
+    public Page<City> findByStateId(Long stateId, String search, Pageable pageable) {
         if (!stateRepository.existsById(stateId)) {
             throw new EntityNotFoundException(
                     "State não encontrado: id=" + stateId);
         }
-        return repository.findByStateId(stateId);
+        return repository.search(stateId, LikePattern.contains(search), pageable);
     }
 
     public Optional<City> findById(Long id) {

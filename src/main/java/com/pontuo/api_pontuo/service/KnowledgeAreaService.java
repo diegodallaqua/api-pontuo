@@ -2,10 +2,12 @@ package com.pontuo.api_pontuo.service;
 
 import com.pontuo.api_pontuo.entity.KnowledgeArea;
 import com.pontuo.api_pontuo.repository.KnowledgeAreaRepository;
+import com.pontuo.api_pontuo.repository.LikePattern;
 import jakarta.persistence.EntityNotFoundException;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
-import java.util.List;
 import java.util.Optional;
 
 @Service
@@ -17,8 +19,8 @@ public class KnowledgeAreaService {
         this.repository = repository;
     }
 
-    public List<KnowledgeArea> findAll() {
-        return repository.findAll();
+    public Page<KnowledgeArea> findAll(String search, Pageable pageable) {
+        return repository.search(LikePattern.contains(search), pageable);
     }
 
     public Optional<KnowledgeArea> findById(Long id) {

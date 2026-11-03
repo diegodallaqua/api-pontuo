@@ -20,6 +20,9 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.security.access.AccessDeniedException;
 
 import java.math.BigDecimal;
@@ -34,6 +37,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.never;
@@ -43,6 +47,8 @@ import static org.mockito.Mockito.when;
 @ExtendWith(MockitoExtension.class)
 @DisplayName("MockExamService")
 class MockExamServiceTest {
+
+    private static final Pageable PAGINA = PageRequest.of(0, 20);
 
     private static final Long USER_ID = 7L;
     private static final Long OUTRO_ID = 8L;
@@ -313,10 +319,10 @@ class MockExamServiceTest {
         @DisplayName("estudante lista só os próprios simulados")
         void estudanteDeveListarSoOsProprios() {
             comoEstudante();
-            when(repository.findByUserId(USER_ID)).thenReturn(List.of(simulado));
+            when(repository.search(USER_ID, null, PAGINA)).thenReturn(new PageImpl<>(List.of(simulado)));
 
-            assertEquals(List.of(simulado), service.findAll());
-            verify(repository, never()).findAll();
+            assertEquals(List.of(simulado), service.findAll(null, PAGINA).getContent());
+            verify(repository, never()).search(isNull(), any(), any());
         }
 
         @Test
@@ -324,18 +330,18 @@ class MockExamServiceTest {
         void administradorDeveListarTodos() {
             when(currentUser.isAdministrador()).thenReturn(true);
 
-            service.findAll();
+            service.findAll(null, PAGINA);
 
-            verify(repository).findAll();
+            verify(repository).search(null, null, PAGINA);
         }
 
         @Test
         @DisplayName("findByUserId verifica o acesso ao dono")
         void deveVerificarAcessoAoListarPorUsuario() {
             when(userRepository.findById(USER_ID)).thenReturn(Optional.of(aluno));
-            when(repository.findByUserId(USER_ID)).thenReturn(List.of(simulado));
+            when(repository.search(USER_ID, null, PAGINA)).thenReturn(new PageImpl<>(List.of(simulado)));
 
-            assertEquals(List.of(simulado), service.findByUserId(USER_ID));
+            assertEquals(List.of(simulado), service.findByUserId(USER_ID, null, PAGINA).getContent());
             verify(currentUser).checkAccess(aluno);
         }
 
@@ -345,10 +351,10 @@ class MockExamServiceTest {
             when(userRepository.findById(99L)).thenReturn(Optional.empty());
 
             EntityNotFoundException ex = assertThrows(EntityNotFoundException.class,
-                    () -> service.findByUserId(99L));
+                    () -> service.findByUserId(99L, null, PAGINA));
 
             assertEquals("User não encontrado: id=99", ex.getMessage());
-            verify(repository, never()).findByUserId(any());
+            verify(repository, never()).search(any(), any(), any());
         }
 
         @Test

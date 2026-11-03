@@ -5,6 +5,8 @@ import com.pontuo.api_pontuo.entity.MockExamHasQuestion;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -65,16 +67,30 @@ public interface MockExamHasQuestionRepository extends JpaRepository<MockExamHas
             "question.topic.subject.knowledgeArea",
             "question.subject.knowledgeArea",
             "answerOption.question"})
-    List<MockExamHasQuestion> findAll();
+    Optional<MockExamHasQuestion> findById(Long id);
 
-    @Override
+    /**
+     * Listagem: cada filtro nulo se anula, e {@code search} é o padrão de
+     * {@link LikePattern#contains}.
+     */
     @EntityGraph(attributePaths = {
             "mockExam.user.userRole",
             "question.entranceExam.institution.address.city.state",
             "question.topic.subject.knowledgeArea",
             "question.subject.knowledgeArea",
             "answerOption.question"})
-    Optional<MockExamHasQuestion> findById(Long id);
+    @Query("""
+            SELECT l FROM MockExamHasQuestion l
+            WHERE (:mockExamId IS NULL OR l.mockExam.id = :mockExamId)
+              AND (:questionId IS NULL OR l.question.id = :questionId)
+              AND (:userId IS NULL OR l.mockExam.user.id = :userId)
+              AND (:search IS NULL OR LOWER(l.question.statement) LIKE :search ESCAPE '!')
+            """)
+    Page<MockExamHasQuestion> search(@Param("mockExamId") Long mockExamId,
+                                     @Param("questionId") Long questionId,
+                                     @Param("userId") Long userId,
+                                     @Param("search") String search,
+                                     Pageable pageable);
 
     @EntityGraph(attributePaths = {
             "mockExam.user.userRole",
@@ -83,30 +99,6 @@ public interface MockExamHasQuestionRepository extends JpaRepository<MockExamHas
             "question.subject.knowledgeArea",
             "answerOption.question"})
     List<MockExamHasQuestion> findByMockExamId(Long mockExamId);
-
-    @EntityGraph(attributePaths = {
-            "mockExam.user.userRole",
-            "question.entranceExam.institution.address.city.state",
-            "question.topic.subject.knowledgeArea",
-            "question.subject.knowledgeArea",
-            "answerOption.question"})
-    List<MockExamHasQuestion> findByQuestionId(Long questionId);
-
-    @EntityGraph(attributePaths = {
-            "mockExam.user.userRole",
-            "question.entranceExam.institution.address.city.state",
-            "question.topic.subject.knowledgeArea",
-            "question.subject.knowledgeArea",
-            "answerOption.question"})
-    List<MockExamHasQuestion> findByMockExamUserId(Long userId);
-
-    @EntityGraph(attributePaths = {
-            "mockExam.user.userRole",
-            "question.entranceExam.institution.address.city.state",
-            "question.topic.subject.knowledgeArea",
-            "question.subject.knowledgeArea",
-            "answerOption.question"})
-    List<MockExamHasQuestion> findByQuestionIdAndMockExamUserId(Long questionId, Long userId);
 
     boolean existsByMockExamIdAndQuestionId(Long mockExamId, Long questionId);
 

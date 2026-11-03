@@ -43,6 +43,21 @@ info:
 
     O gabarito (`rightAnswer`) e a resolução (`explanation`) não são enviados ao estudante antes da finalização do simulado.
 
+    ## Paginação e busca
+
+    As listagens (`GET` da coleção, como `/api/cities`) são paginadas pelos parâmetros de query `page`, a partir de 1
+    (padrão 1), e `limit`, de 1 a 100 (padrão 20). O resultado é ordenado por `id` e vem num envelope:
+
+    ```json
+    {"content": [...], "page": 1, "limit": 20, "totalElements": 137, "totalPages": 7, "last": false}
+    ```
+
+    O desempenho (`/api/performance/**`) e o sorteio de questões (`/api/questions/draw`) não são paginados.
+
+    As listagens e o sorteio também aceitam `search`: um trecho de texto, de até 100 caracteres, procurado sem
+    diferenciar maiúsculas nos campos de texto do recurso (a descrição de cada rota diz quais). Ele se soma aos
+    outros filtros, e `%` e `_` são tratados como texto, não como curinga.
+
     ## Erros
 
     | Status | Quando | Corpo |
@@ -286,23 +301,31 @@ paths:
       description: |-
         Lista estados.
 
+        Paginado por `page` (a partir de 1) e `limit` (de 1 a 100, padrão 20), ordenado por `id`.
+
+        `search` procura o trecho, sem diferenciar maiúsculas, em `name`.
+
         **Acesso:** qualquer usuário autenticado (estudante ou administrador).
 
         **Exemplo cURL**
 
         ```bash
-        curl -X GET "http://localhost:8080/api/states" \
+        curl -X GET "http://localhost:8080/api/states?page=1&limit=20" \
           -H "Authorization: Bearer $TOKEN"
         ```
+      parameters:
+        - $ref: "#/components/parameters/Search"
+        - $ref: "#/components/parameters/Page"
+        - $ref: "#/components/parameters/Limit"
       responses:
         "200":
-          description: Lista de estados.
+          description: "Página de estados, ordenada por `id`."
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: "#/components/schemas/StateResponse"
+                $ref: "#/components/schemas/StatePage"
+        "400":
+          $ref: "#/components/responses/InvalidListParams"
         "401":
           $ref: "#/components/responses/Unauthorized"
     post:
@@ -490,12 +513,16 @@ paths:
       description: |-
         Lista cidades.
 
+        Paginado por `page` (a partir de 1) e `limit` (de 1 a 100, padrão 20), ordenado por `id`.
+
+        `search` procura o trecho, sem diferenciar maiúsculas, em `name`.
+
         **Acesso:** qualquer usuário autenticado (estudante ou administrador).
 
         **Exemplo cURL**
 
         ```bash
-        curl -X GET "http://localhost:8080/api/cities?stateId=1" \
+        curl -X GET "http://localhost:8080/api/cities?stateId=1&page=1&limit=20" \
           -H "Authorization: Bearer $TOKEN"
         ```
       parameters:
@@ -507,15 +534,18 @@ paths:
             type: integer
             format: int64
           example: 1
+        - $ref: "#/components/parameters/Search"
+        - $ref: "#/components/parameters/Page"
+        - $ref: "#/components/parameters/Limit"
       responses:
         "200":
-          description: Lista de cidades.
+          description: "Página de cidades, ordenada por `id`."
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: "#/components/schemas/CityResponse"
+                $ref: "#/components/schemas/CityPage"
+        "400":
+          $ref: "#/components/responses/InvalidListParams"
         "401":
           $ref: "#/components/responses/Unauthorized"
         "404":
@@ -725,12 +755,16 @@ paths:
       description: |-
         Lista endereços.
 
+        Paginado por `page` (a partir de 1) e `limit` (de 1 a 100, padrão 20), ordenado por `id`.
+
+        `search` procura o trecho, sem diferenciar maiúsculas, em `street`, `neighborhood` e `complement`.
+
         **Acesso:** qualquer usuário autenticado (estudante ou administrador).
 
         **Exemplo cURL**
 
         ```bash
-        curl -X GET "http://localhost:8080/api/addresses?cityId=1" \
+        curl -X GET "http://localhost:8080/api/addresses?cityId=1&page=1&limit=20" \
           -H "Authorization: Bearer $TOKEN"
         ```
       parameters:
@@ -742,15 +776,18 @@ paths:
             type: integer
             format: int64
           example: 1
+        - $ref: "#/components/parameters/Search"
+        - $ref: "#/components/parameters/Page"
+        - $ref: "#/components/parameters/Limit"
       responses:
         "200":
-          description: "Lista de endereços."
+          description: "Página de endereços, ordenada por `id`."
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: "#/components/schemas/AddressResponse"
+                $ref: "#/components/schemas/AddressPage"
+        "400":
+          $ref: "#/components/responses/InvalidListParams"
         "401":
           $ref: "#/components/responses/Unauthorized"
         "404":
@@ -966,12 +1003,16 @@ paths:
       description: |-
         Lista instituições.
 
+        Paginado por `page` (a partir de 1) e `limit` (de 1 a 100, padrão 20), ordenado por `id`.
+
+        `search` procura o trecho, sem diferenciar maiúsculas, em `name` e `acronym`.
+
         **Acesso:** qualquer usuário autenticado (estudante ou administrador).
 
         **Exemplo cURL**
 
         ```bash
-        curl -X GET "http://localhost:8080/api/institutions?acronym=UFSC" \
+        curl -X GET "http://localhost:8080/api/institutions?acronym=UFSC&page=1&limit=20" \
           -H "Authorization: Bearer $TOKEN"
         ```
       parameters:
@@ -982,15 +1023,18 @@ paths:
           schema:
             type: string
           example: UFSC
+        - $ref: "#/components/parameters/Search"
+        - $ref: "#/components/parameters/Page"
+        - $ref: "#/components/parameters/Limit"
       responses:
         "200":
-          description: "Lista de instituições."
+          description: "Página de instituições, ordenada por `id`."
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: "#/components/schemas/InstitutionResponse"
+                $ref: "#/components/schemas/InstitutionPage"
+        "400":
+          $ref: "#/components/responses/InvalidListParams"
         "401":
           $ref: "#/components/responses/Unauthorized"
     post:
@@ -1194,12 +1238,16 @@ paths:
       description: |-
         Lista vestibulares. Quando mais de um filtro é enviado, vale apenas o primeiro na ordem dos parâmetros.
 
+        Paginado por `page` (a partir de 1) e `limit` (de 1 a 100, padrão 20), ordenado por `id`.
+
+        `search` procura o trecho, sem diferenciar maiúsculas, em `name` e `stage`.
+
         **Acesso:** qualquer usuário autenticado (estudante ou administrador).
 
         **Exemplo cURL**
 
         ```bash
-        curl -X GET "http://localhost:8080/api/entrance-exams?institutionId=1" \
+        curl -X GET "http://localhost:8080/api/entrance-exams?institutionId=1&page=1&limit=20" \
           -H "Authorization: Bearer $TOKEN"
         ```
       parameters:
@@ -1219,15 +1267,18 @@ paths:
             type: integer
             format: int32
           example: 2025
+        - $ref: "#/components/parameters/Search"
+        - $ref: "#/components/parameters/Page"
+        - $ref: "#/components/parameters/Limit"
       responses:
         "200":
-          description: Lista de vestibulares.
+          description: "Página de vestibulares, ordenada por `id`."
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: "#/components/schemas/EntranceExamResponse"
+                $ref: "#/components/schemas/EntranceExamPage"
+        "400":
+          $ref: "#/components/responses/InvalidListParams"
         "401":
           $ref: "#/components/responses/Unauthorized"
         "404":
@@ -1457,23 +1508,31 @@ paths:
       description: |-
         Lista áreas do conhecimento.
 
+        Paginado por `page` (a partir de 1) e `limit` (de 1 a 100, padrão 20), ordenado por `id`.
+
+        `search` procura o trecho, sem diferenciar maiúsculas, em `description`.
+
         **Acesso:** qualquer usuário autenticado (estudante ou administrador).
 
         **Exemplo cURL**
 
         ```bash
-        curl -X GET "http://localhost:8080/api/knowledge-areas" \
+        curl -X GET "http://localhost:8080/api/knowledge-areas?page=1&limit=20" \
           -H "Authorization: Bearer $TOKEN"
         ```
+      parameters:
+        - $ref: "#/components/parameters/Search"
+        - $ref: "#/components/parameters/Page"
+        - $ref: "#/components/parameters/Limit"
       responses:
         "200":
-          description: "Lista de áreas do conhecimento."
+          description: "Página de áreas do conhecimento, ordenada por `id`."
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: "#/components/schemas/KnowledgeAreaResponse"
+                $ref: "#/components/schemas/KnowledgeAreaPage"
+        "400":
+          $ref: "#/components/responses/InvalidListParams"
         "401":
           $ref: "#/components/responses/Unauthorized"
     post:
@@ -1661,12 +1720,16 @@ paths:
       description: |-
         Lista matérias.
 
+        Paginado por `page` (a partir de 1) e `limit` (de 1 a 100, padrão 20), ordenado por `id`.
+
+        `search` procura o trecho, sem diferenciar maiúsculas, em `description`.
+
         **Acesso:** qualquer usuário autenticado (estudante ou administrador).
 
         **Exemplo cURL**
 
         ```bash
-        curl -X GET "http://localhost:8080/api/subjects?knowledgeAreaId=1" \
+        curl -X GET "http://localhost:8080/api/subjects?knowledgeAreaId=1&page=1&limit=20" \
           -H "Authorization: Bearer $TOKEN"
         ```
       parameters:
@@ -1678,15 +1741,18 @@ paths:
             type: integer
             format: int64
           example: 1
+        - $ref: "#/components/parameters/Search"
+        - $ref: "#/components/parameters/Page"
+        - $ref: "#/components/parameters/Limit"
       responses:
         "200":
-          description: "Lista de matérias."
+          description: "Página de matérias, ordenada por `id`."
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: "#/components/schemas/SubjectResponse"
+                $ref: "#/components/schemas/SubjectPage"
+        "400":
+          $ref: "#/components/responses/InvalidListParams"
         "401":
           $ref: "#/components/responses/Unauthorized"
         "404":
@@ -1896,12 +1962,16 @@ paths:
       description: |-
         Lista tópicos.
 
+        Paginado por `page` (a partir de 1) e `limit` (de 1 a 100, padrão 20), ordenado por `id`.
+
+        `search` procura o trecho, sem diferenciar maiúsculas, em `description`.
+
         **Acesso:** qualquer usuário autenticado (estudante ou administrador).
 
         **Exemplo cURL**
 
         ```bash
-        curl -X GET "http://localhost:8080/api/topics?subjectId=1" \
+        curl -X GET "http://localhost:8080/api/topics?subjectId=1&page=1&limit=20" \
           -H "Authorization: Bearer $TOKEN"
         ```
       parameters:
@@ -1913,15 +1983,18 @@ paths:
             type: integer
             format: int64
           example: 1
+        - $ref: "#/components/parameters/Search"
+        - $ref: "#/components/parameters/Page"
+        - $ref: "#/components/parameters/Limit"
       responses:
         "200":
-          description: "Lista de tópicos."
+          description: "Página de tópicos, ordenada por `id`."
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: "#/components/schemas/TopicResponse"
+                $ref: "#/components/schemas/TopicPage"
+        "400":
+          $ref: "#/components/responses/InvalidListParams"
         "401":
           $ref: "#/components/responses/Unauthorized"
         "404":
@@ -2133,12 +2206,14 @@ paths:
 
         A `explanation` (resolução comentada) só é preenchida para o administrador.
 
+        `search` procura o trecho, sem diferenciar maiúsculas, em enunciado (`statement`); a resolução fica de fora.
+
         **Acesso:** qualquer usuário autenticado (estudante ou administrador).
 
         **Exemplo cURL**
 
         ```bash
-        curl -X GET "http://localhost:8080/api/questions?entranceExamId=1&knowledgeAreaId=1&page=0&size=20" \
+        curl -X GET "http://localhost:8080/api/questions?entranceExamId=1&knowledgeAreaId=1&page=1&limit=20" \
           -H "Authorization: Bearer $TOKEN"
         ```
       parameters:
@@ -2184,25 +2259,9 @@ paths:
             minimum: 1
             maximum: 3
           example: 2
-        - name: page
-          in: query
-          required: false
-          description: "Número da página, a partir de 0."
-          schema:
-            type: integer
-            format: int32
-            minimum: 0
-            default: 0
-        - name: size
-          in: query
-          required: false
-          description: "Tamanho da página, de 1 a 100."
-          schema:
-            type: integer
-            format: int32
-            minimum: 1
-            maximum: 100
-            default: 20
+        - $ref: "#/components/parameters/Search"
+        - $ref: "#/components/parameters/Page"
+        - $ref: "#/components/parameters/Limit"
       responses:
         "200":
           description: "Página de questões, ordenada por `id`."
@@ -2217,7 +2276,7 @@ paths:
               schema:
                 $ref: "#/components/schemas/ValidationErrors"
               example:
-                size: size deve estar entre 1 e 100
+                limit: limit deve estar entre 1 e 100
         "401":
           $ref: "#/components/responses/Unauthorized"
         "404":
@@ -2338,6 +2397,8 @@ paths:
 
         Sem gabarito: as alternativas não trazem `rightAnswer` e a questão não traz `explanation`.
 
+        `search` procura o trecho, sem diferenciar maiúsculas, em enunciado (`statement`); a resolução fica de fora.
+
         **Acesso:** qualquer usuário autenticado (estudante ou administrador).
 
         **Exemplo cURL**
@@ -2399,6 +2460,7 @@ paths:
             minimum: 1
             maximum: 100
             default: 10
+        - $ref: "#/components/parameters/Search"
       responses:
         "200":
           description: "Questões sorteadas, já embaralhadas, com alternativas e imagens embutidas."
@@ -2609,12 +2671,16 @@ paths:
 
         `rightAnswer` (gabarito) só aparece para o administrador; para o estudante o campo é omitido do JSON. A `explanation` da questão embutida também vem nula para o estudante.
 
+        Paginado por `page` (a partir de 1) e `limit` (de 1 a 100, padrão 20), ordenado por `id`.
+
+        `search` procura o trecho, sem diferenciar maiúsculas, em `text`.
+
         **Acesso:** qualquer usuário autenticado (estudante ou administrador).
 
         **Exemplo cURL**
 
         ```bash
-        curl -X GET "http://localhost:8080/api/answer-options?questionId=1" \
+        curl -X GET "http://localhost:8080/api/answer-options?questionId=1&page=1&limit=20" \
           -H "Authorization: Bearer $TOKEN"
         ```
       parameters:
@@ -2626,15 +2692,18 @@ paths:
             type: integer
             format: int64
           example: 1
+        - $ref: "#/components/parameters/Search"
+        - $ref: "#/components/parameters/Page"
+        - $ref: "#/components/parameters/Limit"
       responses:
         "200":
-          description: Lista de alternativas.
+          description: "Página de alternativas, ordenada por `id`."
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: "#/components/schemas/AnswerOptionResponse"
+                $ref: "#/components/schemas/AnswerOptionPage"
+        "400":
+          $ref: "#/components/responses/InvalidListParams"
         "401":
           $ref: "#/components/responses/Unauthorized"
         "404":
@@ -2888,12 +2957,16 @@ paths:
 
         A `explanation` da questão embutida vem nula para o estudante.
 
+        Paginado por `page` (a partir de 1) e `limit` (de 1 a 100, padrão 20), ordenado por `id`.
+
+        `search` procura o trecho, sem diferenciar maiúsculas, em `subtitle`.
+
         **Acesso:** qualquer usuário autenticado (estudante ou administrador).
 
         **Exemplo cURL**
 
         ```bash
-        curl -X GET "http://localhost:8080/api/question-images?questionId=1" \
+        curl -X GET "http://localhost:8080/api/question-images?questionId=1&page=1&limit=20" \
           -H "Authorization: Bearer $TOKEN"
         ```
       parameters:
@@ -2905,15 +2978,18 @@ paths:
             type: integer
             format: int64
           example: 1
+        - $ref: "#/components/parameters/Search"
+        - $ref: "#/components/parameters/Page"
+        - $ref: "#/components/parameters/Limit"
       responses:
         "200":
-          description: "Lista de imagens de questões."
+          description: "Página de imagens de questões, ordenada por `id`."
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: "#/components/schemas/QuestionImageResponse"
+                $ref: "#/components/schemas/QuestionImagePage"
+        "400":
+          $ref: "#/components/responses/InvalidListParams"
         "401":
           $ref: "#/components/responses/Unauthorized"
         "404":
@@ -3117,12 +3193,16 @@ paths:
       description: |-
         Sem `userId`, o administrador vê todos os simulados e o estudante, só os dele. Com `userId`, o estudante só pode informar o próprio id.
 
+        Paginado por `page` (a partir de 1) e `limit` (de 1 a 100, padrão 20), ordenado por `id`.
+
+        `search` procura o trecho, sem diferenciar maiúsculas, em `name`.
+
         **Acesso:** usuário autenticado. O estudante só acessa os próprios registros (`403` nos de outra pessoa); o administrador acessa todos.
 
         **Exemplo cURL**
 
         ```bash
-        curl -X GET "http://localhost:8080/api/mock-exams" \
+        curl -X GET "http://localhost:8080/api/mock-exams?page=1&limit=20" \
           -H "Authorization: Bearer $TOKEN"
         ```
       parameters:
@@ -3134,15 +3214,18 @@ paths:
             type: integer
             format: int64
           example: 7
+        - $ref: "#/components/parameters/Search"
+        - $ref: "#/components/parameters/Page"
+        - $ref: "#/components/parameters/Limit"
       responses:
         "200":
-          description: Lista de simulados.
+          description: "Página de simulados, ordenada por `id`."
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: "#/components/schemas/MockExamResponse"
+                $ref: "#/components/schemas/MockExamPage"
+        "400":
+          $ref: "#/components/responses/InvalidListParams"
         "401":
           $ref: "#/components/responses/Unauthorized"
         "403":
@@ -3574,12 +3657,16 @@ paths:
 
         `correct`, `answerOption.rightAnswer` e `question.explanation` só são exibidos ao estudante depois da finalização do simulado; o administrador os vê sempre.
 
+        Paginado por `page` (a partir de 1) e `limit` (de 1 a 100, padrão 20), ordenado por `id`.
+
+        `search` procura o trecho, sem diferenciar maiúsculas, em enunciado da questão (`question.statement`).
+
         **Acesso:** usuário autenticado. O estudante só acessa os próprios registros (`403` nos de outra pessoa); o administrador acessa todos.
 
         **Exemplo cURL**
 
         ```bash
-        curl -X GET "http://localhost:8080/api/mock-exam-questions?mockExamId=1" \
+        curl -X GET "http://localhost:8080/api/mock-exam-questions?mockExamId=1&page=1&limit=20" \
           -H "Authorization: Bearer $TOKEN"
         ```
       parameters:
@@ -3599,15 +3686,18 @@ paths:
             type: integer
             format: int64
           example: 1
+        - $ref: "#/components/parameters/Search"
+        - $ref: "#/components/parameters/Page"
+        - $ref: "#/components/parameters/Limit"
       responses:
         "200":
-          description: "Lista de vínculos simulado–questão."
+          description: "Página de vínculos simulado–questão, ordenada por `id`."
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: "#/components/schemas/MockExamQuestionResponse"
+                $ref: "#/components/schemas/MockExamQuestionPage"
+        "400":
+          $ref: "#/components/responses/InvalidListParams"
         "401":
           $ref: "#/components/responses/Unauthorized"
         "403":
@@ -4675,12 +4765,16 @@ paths:
       description: |-
         Lista usuários.
 
+        Paginado por `page` (a partir de 1) e `limit` (de 1 a 100, padrão 20), ordenado por `id`.
+
+        `search` procura o trecho, sem diferenciar maiúsculas, em `username` e `email`.
+
         **Acesso:** somente administrador.
 
         **Exemplo cURL**
 
         ```bash
-        curl -X GET "http://localhost:8080/api/users?userRoleId=2" \
+        curl -X GET "http://localhost:8080/api/users?userRoleId=2&page=1&limit=20" \
           -H "Authorization: Bearer $TOKEN"
         ```
       parameters:
@@ -4692,15 +4786,18 @@ paths:
             type: integer
             format: int64
           example: 2
+        - $ref: "#/components/parameters/Search"
+        - $ref: "#/components/parameters/Page"
+        - $ref: "#/components/parameters/Limit"
       responses:
         "200":
-          description: "Lista de usuários."
+          description: "Página de usuários, ordenada por `id`."
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: "#/components/schemas/UserResponse"
+                $ref: "#/components/schemas/UserPage"
+        "400":
+          $ref: "#/components/responses/InvalidListParams"
         "401":
           $ref: "#/components/responses/Unauthorized"
         "403":
@@ -4954,23 +5051,31 @@ paths:
       description: |-
         Lista perfis.
 
+        Paginado por `page` (a partir de 1) e `limit` (de 1 a 100, padrão 20), ordenado por `id`.
+
+        `search` procura o trecho, sem diferenciar maiúsculas, em `description`.
+
         **Acesso:** somente administrador.
 
         **Exemplo cURL**
 
         ```bash
-        curl -X GET "http://localhost:8080/api/user-roles" \
+        curl -X GET "http://localhost:8080/api/user-roles?page=1&limit=20" \
           -H "Authorization: Bearer $TOKEN"
         ```
+      parameters:
+        - $ref: "#/components/parameters/Search"
+        - $ref: "#/components/parameters/Page"
+        - $ref: "#/components/parameters/Limit"
       responses:
         "200":
-          description: Lista de perfis.
+          description: "Página de perfis, ordenada por `id`."
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: "#/components/schemas/UserRoleResponse"
+                $ref: "#/components/schemas/UserRolePage"
+        "400":
+          $ref: "#/components/responses/InvalidListParams"
         "401":
           $ref: "#/components/responses/Unauthorized"
         "403":
@@ -5203,6 +5308,36 @@ components:
         type: string
         format: date
       example: "2026-10-31"
+    Page:
+      name: page
+      in: query
+      required: false
+      description: "Número da página, a partir de 1."
+      schema:
+        type: integer
+        format: int32
+        minimum: 1
+        default: 1
+    Search:
+      name: search
+      in: query
+      required: false
+      description: "Trecho de texto procurado sem diferenciar maiúsculas, de até 100 caracteres. Vazio é ignorado. Os campos variam por rota."
+      schema:
+        type: string
+        maxLength: 100
+      example: "rio"
+    Limit:
+      name: limit
+      in: query
+      required: false
+      description: "Tamanho da página, de 1 a 100."
+      schema:
+        type: integer
+        format: int32
+        minimum: 1
+        maximum: 100
+        default: 20
   responses:
     Unauthorized:
       description: "Sem token, ou token inválido, expirado ou revogado pelo logout. A resposta traz o header `WWW-Authenticate: Bearer`."
@@ -5248,6 +5383,25 @@ components:
               summary: Id não numérico
               value:
                 id: "id deve ser um número inteiro (recebido: abc)"
+    InvalidListParams:
+      description: "Parâmetro de query inválido. Uma mensagem por campo com erro."
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ValidationErrors"
+          examples:
+            limit:
+              summary: "limit fora da faixa"
+              value:
+                limit: "limit deve estar entre 1 e 100"
+            page:
+              summary: "page zero ou negativo"
+              value:
+                page: "page deve ser maior que zero"
+            search:
+              summary: "search longo demais"
+              value:
+                search: "search deve ter no máximo 100 caracteres"
   schemas:
     ErrorMessage:
       type: object
@@ -5265,6 +5419,33 @@ components:
         type: string
       example:
         name: "name é obrigatório"
+    PageMetadata:
+      type: object
+      description: "Metadados do envelope de paginação."
+      properties:
+        page:
+          type: integer
+          format: int32
+          description: "Número da página devolvida, a partir de 1."
+          example: 1
+        limit:
+          type: integer
+          format: int32
+          description: "Tamanho da página pedido."
+          example: 20
+        totalElements:
+          type: integer
+          format: int64
+          description: "Total de registros em todas as páginas."
+          example: 137
+        totalPages:
+          type: integer
+          format: int32
+          example: 7
+        last:
+          type: boolean
+          description: "Se esta é a última página."
+          example: false
     LoginRequest:
       type: object
       required:
@@ -5342,6 +5523,16 @@ components:
         description:
           type: string
           example: Estudante
+    UserRolePage:
+      description: "Página de UserRoleResponse."
+      allOf:
+        - $ref: "#/components/schemas/PageMetadata"
+        - type: object
+          properties:
+            content:
+              type: array
+              items:
+                $ref: "#/components/schemas/UserRoleResponse"
     UserRequest:
       type: object
       required:
@@ -5398,6 +5589,16 @@ components:
           example: "2026-10-01T09:15:00"
         userRole:
           $ref: "#/components/schemas/UserRoleResponse"
+    UserPage:
+      description: "Página de UserResponse."
+      allOf:
+        - $ref: "#/components/schemas/PageMetadata"
+        - type: object
+          properties:
+            content:
+              type: array
+              items:
+                $ref: "#/components/schemas/UserResponse"
     StateRequest:
       type: object
       required:
@@ -5417,6 +5618,16 @@ components:
         name:
           type: string
           example: Santa Catarina
+    StatePage:
+      description: "Página de StateResponse."
+      allOf:
+        - $ref: "#/components/schemas/PageMetadata"
+        - type: object
+          properties:
+            content:
+              type: array
+              items:
+                $ref: "#/components/schemas/StateResponse"
     CityRequest:
       type: object
       required:
@@ -5443,6 +5654,16 @@ components:
           example: "Florianópolis"
         state:
           $ref: "#/components/schemas/StateResponse"
+    CityPage:
+      description: "Página de CityResponse."
+      allOf:
+        - $ref: "#/components/schemas/PageMetadata"
+        - type: object
+          properties:
+            content:
+              type: array
+              items:
+                $ref: "#/components/schemas/CityResponse"
     AddressRequest:
       type: object
       required:
@@ -5496,6 +5717,16 @@ components:
           example: Reitoria II
         city:
           $ref: "#/components/schemas/CityResponse"
+    AddressPage:
+      description: "Página de AddressResponse."
+      allOf:
+        - $ref: "#/components/schemas/PageMetadata"
+        - type: object
+          properties:
+            content:
+              type: array
+              items:
+                $ref: "#/components/schemas/AddressResponse"
     InstitutionRequest:
       type: object
       required:
@@ -5530,6 +5761,16 @@ components:
           example: UFSC
         address:
           $ref: "#/components/schemas/AddressResponse"
+    InstitutionPage:
+      description: "Página de InstitutionResponse."
+      allOf:
+        - $ref: "#/components/schemas/PageMetadata"
+        - type: object
+          properties:
+            content:
+              type: array
+              items:
+                $ref: "#/components/schemas/InstitutionResponse"
     EntranceExamRequest:
       type: object
       required:
@@ -5574,6 +5815,16 @@ components:
           example: "2º Dia"
         institution:
           $ref: "#/components/schemas/InstitutionResponse"
+    EntranceExamPage:
+      description: "Página de EntranceExamResponse."
+      allOf:
+        - $ref: "#/components/schemas/PageMetadata"
+        - type: object
+          properties:
+            content:
+              type: array
+              items:
+                $ref: "#/components/schemas/EntranceExamResponse"
     KnowledgeAreaRequest:
       type: object
       required:
@@ -5593,6 +5844,16 @@ components:
         description:
           type: string
           example: "Ciências da Natureza e suas Tecnologias"
+    KnowledgeAreaPage:
+      description: "Página de KnowledgeAreaResponse."
+      allOf:
+        - $ref: "#/components/schemas/PageMetadata"
+        - type: object
+          properties:
+            content:
+              type: array
+              items:
+                $ref: "#/components/schemas/KnowledgeAreaResponse"
     SubjectRequest:
       type: object
       required:
@@ -5619,6 +5880,16 @@ components:
           example: Biologia
         knowledgeArea:
           $ref: "#/components/schemas/KnowledgeAreaResponse"
+    SubjectPage:
+      description: "Página de SubjectResponse."
+      allOf:
+        - $ref: "#/components/schemas/PageMetadata"
+        - type: object
+          properties:
+            content:
+              type: array
+              items:
+                $ref: "#/components/schemas/SubjectResponse"
     TopicRequest:
       type: object
       required:
@@ -5645,6 +5916,16 @@ components:
           example: "Genética"
         subject:
           $ref: "#/components/schemas/SubjectResponse"
+    TopicPage:
+      description: "Página de TopicResponse."
+      allOf:
+        - $ref: "#/components/schemas/PageMetadata"
+        - type: object
+          properties:
+            content:
+              type: array
+              items:
+                $ref: "#/components/schemas/TopicResponse"
     QuestionRequest:
       type: object
       required:
@@ -5716,32 +5997,15 @@ components:
             - $ref: "#/components/schemas/SubjectResponse"
           nullable: true
     QuestionPage:
-      type: object
-      description: "Envelope de paginação."
-      properties:
-        content:
-          type: array
-          items:
-            $ref: "#/components/schemas/QuestionResponse"
-        page:
-          type: integer
-          format: int32
-          example: 0
-        size:
-          type: integer
-          format: int32
-          example: 20
-        totalElements:
-          type: integer
-          format: int64
-          example: 137
-        totalPages:
-          type: integer
-          format: int32
-          example: 7
-        last:
-          type: boolean
-          example: false
+      description: "Página de QuestionResponse."
+      allOf:
+        - $ref: "#/components/schemas/PageMetadata"
+        - type: object
+          properties:
+            content:
+              type: array
+              items:
+                $ref: "#/components/schemas/QuestionResponse"
     AnswerOptionSummaryResponse:
       type: object
       properties:
@@ -5849,6 +6113,16 @@ components:
           example: true
         question:
           $ref: "#/components/schemas/QuestionResponse"
+    AnswerOptionPage:
+      description: "Página de AnswerOptionResponse."
+      allOf:
+        - $ref: "#/components/schemas/PageMetadata"
+        - type: object
+          properties:
+            content:
+              type: array
+              items:
+                $ref: "#/components/schemas/AnswerOptionResponse"
     QuestionImageRequest:
       type: object
       required:
@@ -5884,6 +6158,16 @@ components:
           example: "Figura 1 — ciclo celular"
         question:
           $ref: "#/components/schemas/QuestionResponse"
+    QuestionImagePage:
+      description: "Página de QuestionImageResponse."
+      allOf:
+        - $ref: "#/components/schemas/PageMetadata"
+        - type: object
+          properties:
+            content:
+              type: array
+              items:
+                $ref: "#/components/schemas/QuestionImageResponse"
     MockExamRequest:
       type: object
       required:
@@ -5964,6 +6248,16 @@ components:
           example: 70.0
         user:
           $ref: "#/components/schemas/UserResponse"
+    MockExamPage:
+      description: "Página de MockExamResponse."
+      allOf:
+        - $ref: "#/components/schemas/PageMetadata"
+        - type: object
+          properties:
+            content:
+              type: array
+              items:
+                $ref: "#/components/schemas/MockExamResponse"
     MockExamResultResponse:
       type: object
       properties:
@@ -6019,6 +6313,16 @@ components:
           allOf:
             - $ref: "#/components/schemas/AnswerOptionResponse"
           nullable: true
+    MockExamQuestionPage:
+      description: "Página de MockExamQuestionResponse."
+      allOf:
+        - $ref: "#/components/schemas/PageMetadata"
+        - type: object
+          properties:
+            content:
+              type: array
+              items:
+                $ref: "#/components/schemas/MockExamQuestionResponse"
     PerformanceOverviewResponse:
       type: object
       properties:

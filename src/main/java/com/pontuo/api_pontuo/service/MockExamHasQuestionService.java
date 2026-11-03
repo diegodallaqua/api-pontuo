@@ -5,16 +5,18 @@ import com.pontuo.api_pontuo.entity.MockExam;
 import com.pontuo.api_pontuo.entity.MockExamHasQuestion;
 import com.pontuo.api_pontuo.entity.Question;
 import com.pontuo.api_pontuo.repository.AnswerOptionRepository;
+import com.pontuo.api_pontuo.repository.LikePattern;
 import com.pontuo.api_pontuo.repository.MockExamHasQuestionRepository;
 import com.pontuo.api_pontuo.repository.MockExamRepository;
 import com.pontuo.api_pontuo.repository.QuestionRepository;
 import com.pontuo.api_pontuo.security.CurrentUser;
 
 import jakarta.persistence.EntityNotFoundException;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
-import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 
@@ -45,27 +47,27 @@ public class MockExamHasQuestionService {
     }
 
     /** O administrador vê todos os vínculos; o estudante, os dos simulados dele. */
-    public List<MockExamHasQuestion> findAll() {
+    public Page<MockExamHasQuestion> findAll(String search, Pageable pageable) {
         if (currentUser.isAdministrador()) {
-            return repository.findAll();
+            return repository.search(null, null, null, LikePattern.contains(search), pageable);
         }
-        return repository.findByMockExamUserId(currentUser.get().getId());
+        return repository.search(null, null, currentUser.get().getId(), LikePattern.contains(search), pageable);
     }
 
-    public List<MockExamHasQuestion> findByMockExamId(Long mockExamId) {
+    public Page<MockExamHasQuestion> findByMockExamId(Long mockExamId, String search, Pageable pageable) {
         MockExam mockExam = findMockExam(mockExamId);
         currentUser.checkAccess(mockExam.getUser());
-        return repository.findByMockExamId(mockExamId);
+        return repository.search(mockExamId, null, null, LikePattern.contains(search), pageable);
     }
 
-    public List<MockExamHasQuestion> findByQuestionId(Long questionId) {
+    public Page<MockExamHasQuestion> findByQuestionId(Long questionId, String search, Pageable pageable) {
         if (!questionRepository.existsById(questionId)) {
             throw new EntityNotFoundException("Question não encontrada: id=" + questionId);
         }
         if (currentUser.isAdministrador()) {
-            return repository.findByQuestionId(questionId);
+            return repository.search(null, questionId, null, LikePattern.contains(search), pageable);
         }
-        return repository.findByQuestionIdAndMockExamUserId(questionId, currentUser.get().getId());
+        return repository.search(null, questionId, currentUser.get().getId(), LikePattern.contains(search), pageable);
     }
 
     public Optional<MockExamHasQuestion> findById(Long id) {

@@ -3,6 +3,7 @@ package com.pontuo.api_pontuo.controller;
 import com.pontuo.api_pontuo.dto.MockExamRequestDTO;
 import com.pontuo.api_pontuo.dto.MockExamResponseDTO;
 import com.pontuo.api_pontuo.dto.MockExamResultResponseDTO;
+import com.pontuo.api_pontuo.dto.PageResponseDTO;
 import com.pontuo.api_pontuo.dto.UserResponseDTO;
 import com.pontuo.api_pontuo.dto.UserRoleResponseDTO;
 import com.pontuo.api_pontuo.entity.MockExam;
@@ -12,12 +13,15 @@ import com.pontuo.api_pontuo.service.MockExamService;
 
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.Positive;
+import jakarta.validation.constraints.Size;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
 
 @RestController
 @RequestMapping("/api/mock-exams")
@@ -30,14 +34,20 @@ public class MockExamController {
     }
 
     @GetMapping
-    public List<MockExamResponseDTO> findAll(
-            @RequestParam(required = false) Long userId) {
-        List<MockExam> mockExams = userId == null
-                ? service.findAll()
-                : service.findByUserId(userId);
-        return mockExams.stream()
-                .map(this::toResponseDTO)
-                .toList();
+    public PageResponseDTO<MockExamResponseDTO> findAll(
+            @RequestParam(required = false) Long userId,
+            @RequestParam(required = false)
+            @Size(max = Search.MAX_LENGTH, message = Search.MESSAGE) String search,
+            @RequestParam(defaultValue = Pagination.DEFAULT_PAGE)
+            @Min(value = 1, message = Pagination.PAGE_MESSAGE) int page,
+            @RequestParam(defaultValue = Pagination.DEFAULT_LIMIT)
+            @Min(value = 1, message = Pagination.LIMIT_MESSAGE)
+            @Max(value = Pagination.MAX_LIMIT, message = Pagination.LIMIT_MESSAGE) int limit) {
+        PageRequest pageRequest = Pagination.of(page, limit);
+        Page<MockExam> mockExams = userId == null
+                ? service.findAll(search, pageRequest)
+                : service.findByUserId(userId, search, pageRequest);
+        return PageResponseDTO.of(mockExams.map(this::toResponseDTO));
     }
 
     @GetMapping("/{id}")

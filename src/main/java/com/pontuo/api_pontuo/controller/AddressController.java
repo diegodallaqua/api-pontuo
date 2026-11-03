@@ -3,6 +3,7 @@ package com.pontuo.api_pontuo.controller;
 import com.pontuo.api_pontuo.dto.AddressRequestDTO;
 import com.pontuo.api_pontuo.dto.AddressResponseDTO;
 import com.pontuo.api_pontuo.dto.CityResponseDTO;
+import com.pontuo.api_pontuo.dto.PageResponseDTO;
 import com.pontuo.api_pontuo.dto.StateResponseDTO;
 import com.pontuo.api_pontuo.entity.Address;
 import com.pontuo.api_pontuo.entity.City;
@@ -10,12 +11,15 @@ import com.pontuo.api_pontuo.entity.State;
 import com.pontuo.api_pontuo.service.AddressService;
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.Positive;
+import jakarta.validation.constraints.Size;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
 
 /**
  * <b>Facade</b> do recurso de endereços: as cinco rotas abaixo escondem do
@@ -35,14 +39,20 @@ public class AddressController {
     }
 
     @GetMapping
-    public List<AddressResponseDTO> findAll(
-            @RequestParam(required = false) Long cityId) {
-        List<Address> addresses = cityId == null
-                ? service.findAll()
-                : service.findByCityId(cityId);
-        return addresses.stream()
-                .map(this::toResponseDTO)
-                .toList();
+    public PageResponseDTO<AddressResponseDTO> findAll(
+            @RequestParam(required = false) Long cityId,
+            @RequestParam(required = false)
+            @Size(max = Search.MAX_LENGTH, message = Search.MESSAGE) String search,
+            @RequestParam(defaultValue = Pagination.DEFAULT_PAGE)
+            @Min(value = 1, message = Pagination.PAGE_MESSAGE) int page,
+            @RequestParam(defaultValue = Pagination.DEFAULT_LIMIT)
+            @Min(value = 1, message = Pagination.LIMIT_MESSAGE)
+            @Max(value = Pagination.MAX_LIMIT, message = Pagination.LIMIT_MESSAGE) int limit) {
+        PageRequest pageRequest = Pagination.of(page, limit);
+        Page<Address> addresses = cityId == null
+                ? service.findAll(search, pageRequest)
+                : service.findByCityId(cityId, search, pageRequest);
+        return PageResponseDTO.of(addresses.map(this::toResponseDTO));
     }
 
     @GetMapping("/{id}")

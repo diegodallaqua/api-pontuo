@@ -9,6 +9,7 @@ import com.pontuo.api_pontuo.dto.KnowledgeAreaResponseDTO;
 import com.pontuo.api_pontuo.dto.MockExamHasQuestionRequestDTO;
 import com.pontuo.api_pontuo.dto.MockExamHasQuestionResponseDTO;
 import com.pontuo.api_pontuo.dto.MockExamResponseDTO;
+import com.pontuo.api_pontuo.dto.PageResponseDTO;
 import com.pontuo.api_pontuo.dto.QuestionResponseDTO;
 import com.pontuo.api_pontuo.dto.StateResponseDTO;
 import com.pontuo.api_pontuo.dto.SubjectResponseDTO;
@@ -34,12 +35,15 @@ import com.pontuo.api_pontuo.service.MockExamHasQuestionService;
 
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.Positive;
+import jakarta.validation.constraints.Size;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
 
 @RestController
 @RequestMapping("/api/mock-exam-questions")
@@ -52,20 +56,26 @@ public class MockExamHasQuestionController {
     }
 
     @GetMapping
-    public List<MockExamHasQuestionResponseDTO> findAll(
+    public PageResponseDTO<MockExamHasQuestionResponseDTO> findAll(
             @RequestParam(required = false) Long mockExamId,
-            @RequestParam(required = false) Long questionId) {
-        List<MockExamHasQuestion> links;
+            @RequestParam(required = false) Long questionId,
+            @RequestParam(required = false)
+            @Size(max = Search.MAX_LENGTH, message = Search.MESSAGE) String search,
+            @RequestParam(defaultValue = Pagination.DEFAULT_PAGE)
+            @Min(value = 1, message = Pagination.PAGE_MESSAGE) int page,
+            @RequestParam(defaultValue = Pagination.DEFAULT_LIMIT)
+            @Min(value = 1, message = Pagination.LIMIT_MESSAGE)
+            @Max(value = Pagination.MAX_LIMIT, message = Pagination.LIMIT_MESSAGE) int limit) {
+        PageRequest pageRequest = Pagination.of(page, limit);
+        Page<MockExamHasQuestion> links;
         if (mockExamId != null) {
-            links = service.findByMockExamId(mockExamId);
+            links = service.findByMockExamId(mockExamId, search, pageRequest);
         } else if (questionId != null) {
-            links = service.findByQuestionId(questionId);
+            links = service.findByQuestionId(questionId, search, pageRequest);
         } else {
-            links = service.findAll();
+            links = service.findAll(search, pageRequest);
         }
-        return links.stream()
-                .map(this::toResponseDTO)
-                .toList();
+        return PageResponseDTO.of(links.map(this::toResponseDTO));
     }
 
     @GetMapping("/{id}")

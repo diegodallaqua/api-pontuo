@@ -4,10 +4,12 @@ import com.pontuo.api_pontuo.entity.Address;
 import com.pontuo.api_pontuo.entity.City;
 import com.pontuo.api_pontuo.repository.CityRepository;
 import com.pontuo.api_pontuo.repository.AddressRepository;
+import com.pontuo.api_pontuo.repository.LikePattern;
 import jakarta.persistence.EntityNotFoundException;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
-import java.util.List;
 import java.util.Optional;
 
 /**
@@ -29,16 +31,16 @@ public class AddressService {
         this.cityRepository = cityRepository;
     }
 
-    public List<Address> findAll() {
-        return repository.findAll();
+    public Page<Address> findAll(String search, Pageable pageable) {
+        return repository.search(null, LikePattern.contains(search), pageable);
     }
 
-    public List<Address> findByCityId(Long cityId) {
+    public Page<Address> findByCityId(Long cityId, String search, Pageable pageable) {
         if (!cityRepository.existsById(cityId)) {
             throw new EntityNotFoundException(
                     "City não encontrada: id=" + cityId);
         }
-        return repository.findByCityId(cityId);
+        return repository.search(cityId, LikePattern.contains(search), pageable);
     }
 
     public Optional<Address> findById(Long id) {

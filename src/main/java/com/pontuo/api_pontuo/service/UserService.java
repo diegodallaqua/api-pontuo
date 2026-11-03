@@ -2,13 +2,15 @@ package com.pontuo.api_pontuo.service;
 
 import com.pontuo.api_pontuo.entity.User;
 import com.pontuo.api_pontuo.entity.UserRole;
+import com.pontuo.api_pontuo.repository.LikePattern;
 import com.pontuo.api_pontuo.repository.UserRepository;
 import com.pontuo.api_pontuo.repository.UserRoleRepository;
 import jakarta.persistence.EntityNotFoundException;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
-import java.util.List;
 import java.util.Optional;
 
 @Service
@@ -29,16 +31,16 @@ public class UserService {
         this.passwordEncoder = passwordEncoder;
     }
 
-    public List<User> findAll() {
-        return repository.findAll();
+    public Page<User> findAll(String search, Pageable pageable) {
+        return repository.search(null, LikePattern.contains(search), pageable);
     }
 
-    public List<User> findByUserRoleId(Long userRoleId) {
+    public Page<User> findByUserRoleId(Long userRoleId, String search, Pageable pageable) {
         if (!userRoleRepository.existsById(userRoleId)) {
             throw new EntityNotFoundException(
                     "UserRole não encontrada: id=" + userRoleId);
         }
-        return repository.findByUserRoleId(userRoleId);
+        return repository.search(userRoleId, LikePattern.contains(search), pageable);
     }
 
     public Optional<User> findById(Long id) {

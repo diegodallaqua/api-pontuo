@@ -225,6 +225,8 @@ class RouteAuthorizationTest {
         @Test
         @DisplayName("gerencia usuários e perfis")
         void deveGerenciarUsuarios() throws Exception {
+            when(userService.findAll(any(), any())).thenReturn(new PageImpl<>(List.of()));
+
             mockMvc.perform(get("/api/users").with(administrador())).andExpect(status().isOk());
             mockMvc.perform(delete("/api/user-roles/3").with(administrador())).andExpect(status().isNoContent());
         }

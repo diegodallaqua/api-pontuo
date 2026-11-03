@@ -13,6 +13,8 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 
 import java.util.Optional;
 
@@ -28,6 +30,8 @@ import static org.mockito.Mockito.when;
 @ExtendWith(MockitoExtension.class)
 @DisplayName("AddressService")
 class AddressServiceTest {
+
+    private static final Pageable PAGINA = PageRequest.of(0, 20);
 
     @Mock
     private AddressRepository repository;
@@ -164,10 +168,10 @@ class AddressServiceTest {
             when(cityRepository.existsById(99L)).thenReturn(false);
 
             EntityNotFoundException ex = assertThrows(EntityNotFoundException.class,
-                    () -> service.findByCityId(99L));
+                    () -> service.findByCityId(99L, null, PAGINA));
 
             assertEquals("City não encontrada: id=99", ex.getMessage());
-            verify(repository, never()).findByCityId(any());
+            verify(repository, never()).search(any(), any(), any());
         }
     }
 }

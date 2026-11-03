@@ -13,6 +13,8 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 
 import java.util.Optional;
 
@@ -28,6 +30,8 @@ import static org.mockito.Mockito.when;
 @ExtendWith(MockitoExtension.class)
 @DisplayName("CityService")
 class CityServiceTest {
+
+    private static final Pageable PAGINA = PageRequest.of(0, 20);
 
     @Mock
     private CityRepository repository;
@@ -160,10 +164,33 @@ class CityServiceTest {
             when(stateRepository.existsById(99L)).thenReturn(false);
 
             EntityNotFoundException ex = assertThrows(EntityNotFoundException.class,
-                    () -> service.findByStateId(99L));
+                    () -> service.findByStateId(99L, null, PAGINA));
 
             assertEquals("State não encontrado: id=99", ex.getMessage());
-            verify(repository, never()).findByStateId(any());
+            verify(repository, never()).search(any(), any(), any());
+        }
+    }
+
+    @Nested
+    @DisplayName("listagem")
+    class Listagem {
+
+        @Test
+        @DisplayName("search chega ao repository como padrão de LIKE")
+        void deveConverterSearchEmPadrao() {
+            service.findAll(" Rio ", PAGINA);
+
+            verify(repository).search(null, "%rio%", PAGINA);
+        }
+
+        @Test
+        @DisplayName("sem search o filtro de texto fica desligado")
+        void deveDesligarSearchVazio() {
+            when(stateRepository.existsById(1L)).thenReturn(true);
+
+            service.findByStateId(1L, "", PAGINA);
+
+            verify(repository).search(1L, null, PAGINA);
         }
     }
 }

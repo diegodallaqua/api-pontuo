@@ -5,6 +5,7 @@ import com.pontuo.api_pontuo.dto.CityResponseDTO;
 import com.pontuo.api_pontuo.dto.EntranceExamResponseDTO;
 import com.pontuo.api_pontuo.dto.InstitutionResponseDTO;
 import com.pontuo.api_pontuo.dto.KnowledgeAreaResponseDTO;
+import com.pontuo.api_pontuo.dto.PageResponseDTO;
 import com.pontuo.api_pontuo.dto.QuestionImageRequestDTO;
 import com.pontuo.api_pontuo.dto.QuestionImageResponseDTO;
 import com.pontuo.api_pontuo.dto.QuestionResponseDTO;
@@ -26,12 +27,15 @@ import com.pontuo.api_pontuo.service.QuestionImageService;
 
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.Positive;
+import jakarta.validation.constraints.Size;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
 
 @RestController
 @RequestMapping("/api/question-images")
@@ -44,14 +48,20 @@ public class QuestionImageController {
     }
 
     @GetMapping
-    public List<QuestionImageResponseDTO> findAll(
-            @RequestParam(required = false) Long questionId) {
-        List<QuestionImage> questionImages = questionId == null
-                ? service.findAll()
-                : service.findByQuestionId(questionId);
-        return questionImages.stream()
-                .map(this::toResponseDTO)
-                .toList();
+    public PageResponseDTO<QuestionImageResponseDTO> findAll(
+            @RequestParam(required = false) Long questionId,
+            @RequestParam(required = false)
+            @Size(max = Search.MAX_LENGTH, message = Search.MESSAGE) String search,
+            @RequestParam(defaultValue = Pagination.DEFAULT_PAGE)
+            @Min(value = 1, message = Pagination.PAGE_MESSAGE) int page,
+            @RequestParam(defaultValue = Pagination.DEFAULT_LIMIT)
+            @Min(value = 1, message = Pagination.LIMIT_MESSAGE)
+            @Max(value = Pagination.MAX_LIMIT, message = Pagination.LIMIT_MESSAGE) int limit) {
+        PageRequest pageRequest = Pagination.of(page, limit);
+        Page<QuestionImage> questionImages = questionId == null
+                ? service.findAll(search, pageRequest)
+                : service.findByQuestionId(questionId, search, pageRequest);
+        return PageResponseDTO.of(questionImages.map(this::toResponseDTO));
     }
 
     @GetMapping("/{id}")

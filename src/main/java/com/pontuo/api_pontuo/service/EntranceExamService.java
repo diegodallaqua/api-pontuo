@@ -4,8 +4,11 @@ import com.pontuo.api_pontuo.entity.EntranceExam;
 import com.pontuo.api_pontuo.entity.Institution;
 import com.pontuo.api_pontuo.repository.InstitutionRepository;
 import com.pontuo.api_pontuo.repository.EntranceExamRepository;
+import com.pontuo.api_pontuo.repository.LikePattern;
 
 import jakarta.persistence.EntityNotFoundException;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -23,23 +26,23 @@ public class EntranceExamService {
         this.institutionRepository = institutionRepository;
     }
 
-    public List<EntranceExam> findAll() {
-        return repository.findAll();
+    public Page<EntranceExam> findAll(String search, Pageable pageable) {
+        return repository.search(null, null, LikePattern.contains(search), pageable);
     }
 
-    public List<EntranceExam> findByYear(short year) {
-        return repository.findByYear(year);
+    public Page<EntranceExam> findByYear(short year, String search, Pageable pageable) {
+        return repository.search(null, year, LikePattern.contains(search), pageable);
     }
 
     public List<EntranceExam> findByInstitution(Institution institution) {
         return repository.findByInstitution(institution);
     }
 
-    public List<EntranceExam> findByInstitutionId(Long institutionId) {
+    public Page<EntranceExam> findByInstitutionId(Long institutionId, String search, Pageable pageable) {
         if (!institutionRepository.existsById(institutionId)) {
             throw new EntityNotFoundException("Institution não encontrada: id=" + institutionId);
         }
-        return repository.findByInstitutionId(institutionId);
+        return repository.search(institutionId, null, LikePattern.contains(search), pageable);
     }
 
     public Optional<EntranceExam> findById(Long id) {

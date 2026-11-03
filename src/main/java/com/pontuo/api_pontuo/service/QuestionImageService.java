@@ -2,13 +2,15 @@ package com.pontuo.api_pontuo.service;
 
 import com.pontuo.api_pontuo.entity.Question;
 import com.pontuo.api_pontuo.entity.QuestionImage;
+import com.pontuo.api_pontuo.repository.LikePattern;
 import com.pontuo.api_pontuo.repository.QuestionImageRepository;
 import com.pontuo.api_pontuo.repository.QuestionRepository;
 
 import jakarta.persistence.EntityNotFoundException;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
-import java.util.List;
 import java.util.Optional;
 
 @Service
@@ -23,15 +25,15 @@ public class QuestionImageService {
         this.questionRepository = questionRepository;
     }
 
-    public List<QuestionImage> findAll() {
-        return repository.findAll();
+    public Page<QuestionImage> findAll(String search, Pageable pageable) {
+        return repository.search(null, LikePattern.contains(search), pageable);
     }
 
-    public List<QuestionImage> findByQuestionId(Long questionId) {
+    public Page<QuestionImage> findByQuestionId(Long questionId, String search, Pageable pageable) {
         if (!questionRepository.existsById(questionId)) {
             throw new EntityNotFoundException("Question não encontrada: id=" + questionId);
         }
-        return repository.findByQuestionId(questionId);
+        return repository.search(questionId, LikePattern.contains(search), pageable);
     }
 
     public Optional<QuestionImage> findById(Long id) {

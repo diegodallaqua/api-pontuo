@@ -13,6 +13,8 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 
 import java.util.Optional;
 
@@ -30,6 +32,8 @@ import static org.mockito.Mockito.when;
 @ExtendWith(MockitoExtension.class)
 @DisplayName("AnswerOptionService")
 class AnswerOptionServiceTest {
+
+    private static final Pageable PAGINA = PageRequest.of(0, 20);
 
     private static final Long QUESTAO_ID = 10L;
     private static final Long OUTRA_QUESTAO_ID = 20L;
@@ -248,10 +252,10 @@ class AnswerOptionServiceTest {
             when(questionRepository.existsById(QUESTAO_ID)).thenReturn(false);
 
             EntityNotFoundException ex = assertThrows(EntityNotFoundException.class,
-                    () -> service.findByQuestionId(QUESTAO_ID));
+                    () -> service.findByQuestionId(QUESTAO_ID, null, PAGINA));
 
             assertEquals("Question não encontrada: id=10", ex.getMessage());
-            verify(repository, never()).findByQuestionId(any());
+            verify(repository, never()).search(any(), any(), any());
         }
     }
 }

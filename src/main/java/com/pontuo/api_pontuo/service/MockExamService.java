@@ -4,12 +4,15 @@ import com.pontuo.api_pontuo.dto.PerformanceItemResponseDTO;
 import com.pontuo.api_pontuo.entity.MockExam;
 import com.pontuo.api_pontuo.entity.MockExamHasQuestion;
 import com.pontuo.api_pontuo.entity.User;
+import com.pontuo.api_pontuo.repository.LikePattern;
 import com.pontuo.api_pontuo.repository.MockExamHasQuestionRepository;
 import com.pontuo.api_pontuo.repository.MockExamRepository;
 import com.pontuo.api_pontuo.repository.UserRepository;
 import com.pontuo.api_pontuo.security.CurrentUser;
 
 import jakarta.persistence.EntityNotFoundException;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -45,17 +48,17 @@ public class MockExamService {
     }
 
     /** O administrador vê todos os simulados; o estudante, só os dele. */
-    public List<MockExam> findAll() {
+    public Page<MockExam> findAll(String search, Pageable pageable) {
         if (currentUser.isAdministrador()) {
-            return repository.findAll();
+            return repository.search(null, LikePattern.contains(search), pageable);
         }
-        return repository.findByUserId(currentUser.get().getId());
+        return repository.search(currentUser.get().getId(), LikePattern.contains(search), pageable);
     }
 
-    public List<MockExam> findByUserId(Long userId) {
+    public Page<MockExam> findByUserId(Long userId, String search, Pageable pageable) {
         User user = findUser(userId);
         currentUser.checkAccess(user);
-        return repository.findByUserId(userId);
+        return repository.search(userId, LikePattern.contains(search), pageable);
     }
 
     public Optional<MockExam> findById(Long id) {

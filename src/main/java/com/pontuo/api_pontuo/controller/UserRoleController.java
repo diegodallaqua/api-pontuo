@@ -1,17 +1,21 @@
 package com.pontuo.api_pontuo.controller;
 
+import com.pontuo.api_pontuo.dto.PageResponseDTO;
 import com.pontuo.api_pontuo.dto.UserRoleRequestDTO;
 import com.pontuo.api_pontuo.dto.UserRoleResponseDTO;
 import com.pontuo.api_pontuo.entity.UserRole;
 import com.pontuo.api_pontuo.service.UserRoleService;
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.Positive;
+import jakarta.validation.constraints.Size;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
 
 @RestController
 @RequestMapping("/api/user-roles")
@@ -24,10 +28,16 @@ public class UserRoleController {
     }
 
     @GetMapping
-    public List<UserRoleResponseDTO> findAll() {
-        return service.findAll().stream()
-                .map(this::toResponseDTO)
-                .toList();
+    public PageResponseDTO<UserRoleResponseDTO> findAll(
+            @RequestParam(required = false)
+            @Size(max = Search.MAX_LENGTH, message = Search.MESSAGE) String search,
+            @RequestParam(defaultValue = Pagination.DEFAULT_PAGE)
+            @Min(value = 1, message = Pagination.PAGE_MESSAGE) int page,
+            @RequestParam(defaultValue = Pagination.DEFAULT_LIMIT)
+            @Min(value = 1, message = Pagination.LIMIT_MESSAGE)
+            @Max(value = Pagination.MAX_LIMIT, message = Pagination.LIMIT_MESSAGE) int limit) {
+        PageRequest pageRequest = Pagination.of(page, limit);
+        return PageResponseDTO.of(service.findAll(search, pageRequest).map(this::toResponseDTO));
     }
 
     @GetMapping("/{id}")

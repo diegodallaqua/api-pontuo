@@ -99,8 +99,9 @@ class MockExamRulesTest {
         void deveListarSoOsPropriosSimulados() throws Exception {
             mockMvc.perform(get("/api/mock-exams").with(comoAluno(alunoA)))
                     .andExpect(status().isOk())
-                    .andExpect(jsonPath("$", hasSize(1)))
-                    .andExpect(jsonPath("$[0].user.username").value("junit_aluno_a"));
+                    .andExpect(jsonPath("$.content", hasSize(1)))
+                    .andExpect(jsonPath("$.content[0].user.username").value("junit_aluno_a"))
+                    .andExpect(jsonPath("$.totalElements").value(1));
         }
 
         @Test

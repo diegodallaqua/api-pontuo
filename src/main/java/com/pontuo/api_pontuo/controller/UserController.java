@@ -1,5 +1,6 @@
 package com.pontuo.api_pontuo.controller;
 
+import com.pontuo.api_pontuo.dto.PageResponseDTO;
 import com.pontuo.api_pontuo.dto.UserRequestDTO;
 import com.pontuo.api_pontuo.dto.UserResponseDTO;
 import com.pontuo.api_pontuo.dto.UserRoleResponseDTO;
@@ -8,12 +9,15 @@ import com.pontuo.api_pontuo.entity.UserRole;
 import com.pontuo.api_pontuo.service.UserService;
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.Positive;
+import jakarta.validation.constraints.Size;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
 
 @RestController
 @RequestMapping("/api/users")
@@ -26,14 +30,20 @@ public class UserController {
     }
 
     @GetMapping
-    public List<UserResponseDTO> findAll(
-            @RequestParam(required = false) Long userRoleId) {
-        List<User> users = userRoleId == null
-                ? service.findAll()
-                : service.findByUserRoleId(userRoleId);
-        return users.stream()
-                .map(this::toResponseDTO)
-                .toList();
+    public PageResponseDTO<UserResponseDTO> findAll(
+            @RequestParam(required = false) Long userRoleId,
+            @RequestParam(required = false)
+            @Size(max = Search.MAX_LENGTH, message = Search.MESSAGE) String search,
+            @RequestParam(defaultValue = Pagination.DEFAULT_PAGE)
+            @Min(value = 1, message = Pagination.PAGE_MESSAGE) int page,
+            @RequestParam(defaultValue = Pagination.DEFAULT_LIMIT)
+            @Min(value = 1, message = Pagination.LIMIT_MESSAGE)
+            @Max(value = Pagination.MAX_LIMIT, message = Pagination.LIMIT_MESSAGE) int limit) {
+        PageRequest pageRequest = Pagination.of(page, limit);
+        Page<User> users = userRoleId == null
+                ? service.findAll(search, pageRequest)
+                : service.findByUserRoleId(userRoleId, search, pageRequest);
+        return PageResponseDTO.of(users.map(this::toResponseDTO));
     }
 
     @GetMapping("/{id}")

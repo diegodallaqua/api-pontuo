@@ -4,10 +4,12 @@ import com.pontuo.api_pontuo.entity.Address;
 import com.pontuo.api_pontuo.entity.Institution;
 import com.pontuo.api_pontuo.repository.InstitutionRepository;
 import com.pontuo.api_pontuo.repository.AddressRepository;
+import com.pontuo.api_pontuo.repository.LikePattern;
 import jakarta.persistence.EntityNotFoundException;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
-import java.util.List;
 import java.util.Optional;
 
 @Service
@@ -22,12 +24,12 @@ public class InstitutionService {
         this.addressRepository = addressRepository;
     }
 
-    public List<Institution> findAll() {
-        return repository.findAll();
+    public Page<Institution> findAll(String search, Pageable pageable) {
+        return repository.search(null, LikePattern.contains(search), pageable);
     }
 
-    public List<Institution> findByAcronym(String acronym) {
-        return repository.findByAcronym(acronym);
+    public Page<Institution> findByAcronym(String acronym, String search, Pageable pageable) {
+        return repository.search(acronym, LikePattern.contains(search), pageable);
     }
 
     public Optional<Institution> findById(Long id) {

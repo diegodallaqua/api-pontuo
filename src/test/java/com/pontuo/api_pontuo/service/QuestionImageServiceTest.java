@@ -13,6 +13,8 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 
 import java.util.Optional;
 
@@ -28,6 +30,8 @@ import static org.mockito.Mockito.when;
 @ExtendWith(MockitoExtension.class)
 @DisplayName("QuestionImageService")
 class QuestionImageServiceTest {
+
+    private static final Pageable PAGINA = PageRequest.of(0, 20);
 
     @Mock
     private QuestionImageRepository repository;
@@ -162,10 +166,10 @@ class QuestionImageServiceTest {
             when(questionRepository.existsById(99L)).thenReturn(false);
 
             EntityNotFoundException ex = assertThrows(EntityNotFoundException.class,
-                    () -> service.findByQuestionId(99L));
+                    () -> service.findByQuestionId(99L, null, PAGINA));
 
             assertEquals("Question não encontrada: id=99", ex.getMessage());
-            verify(repository, never()).findByQuestionId(any());
+            verify(repository, never()).search(any(), any(), any());
         }
     }
 }

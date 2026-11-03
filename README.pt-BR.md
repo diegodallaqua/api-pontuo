@@ -276,59 +276,75 @@ Todos os recursos seguem o mesmo padrão CRUD:
 
 | Método | Rota | Resposta |
 |---|---|---|
-| `GET` | `/api/<recurso>` | Lista, com filtros opcionais |
+| `GET` | `/api/<recurso>` | Lista paginada, com filtros opcionais |
 | `GET` | `/api/<recurso>/{id}` | Um registro, ou `404` |
 | `POST` | `/api/<recurso>` | `201` com o registro criado |
 | `PUT` | `/api/<recurso>/{id}` | Registro atualizado |
 | `DELETE` | `/api/<recurso>/{id}` | `204` |
 
-| Recurso | Rota | Filtros da listagem |
-|---|---|---|
-| Estados | `/api/states` | — |
-| Cidades | `/api/cities` | `stateId` |
-| Endereços | `/api/addresses` | `cityId` |
-| Instituições | `/api/institutions` | `acronym` |
-| Vestibulares | `/api/entrance-exams` | `institutionId`, `year` |
-| Áreas do conhecimento | `/api/knowledge-areas` | — |
-| Matérias | `/api/subjects` | `knowledgeAreaId` |
-| Tópicos | `/api/topics` | `subjectId` |
-| Questões | `/api/questions` | `entranceExamId`, `knowledgeAreaId`, `subjectId`, `topicId`, `page`, `size` |
-| Alternativas | `/api/answer-options` | `questionId` |
-| Imagens de questões | `/api/question-images` | `questionId` |
-| Simulados | `/api/mock-exams` | `userId` (o estudante só lista os próprios) |
-| Questões do simulado | `/api/mock-exam-questions` | `mockExamId`, `questionId` |
-| Usuários | `/api/users` | `userRoleId` |
-| Perfis | `/api/user-roles` | — |
+| Recurso | Rota | Filtros da listagem | `search` procura em |
+|---|---|---|---|
+| Estados | `/api/states` | — | `name` |
+| Cidades | `/api/cities` | `stateId` | `name` |
+| Endereços | `/api/addresses` | `cityId` | `street`, `neighborhood`, `complement` |
+| Instituições | `/api/institutions` | `acronym` | `name`, `acronym` |
+| Vestibulares | `/api/entrance-exams` | `institutionId`, `year` | `name`, `stage` |
+| Áreas do conhecimento | `/api/knowledge-areas` | — | `description` |
+| Matérias | `/api/subjects` | `knowledgeAreaId` | `description` |
+| Tópicos | `/api/topics` | `subjectId` | `description` |
+| Questões | `/api/questions` | `entranceExamId`, `knowledgeAreaId`, `subjectId`, `topicId`, `difficulty` | `statement` |
+| Alternativas | `/api/answer-options` | `questionId` | `text` |
+| Imagens de questões | `/api/question-images` | `questionId` | `subtitle` |
+| Simulados | `/api/mock-exams` | `userId` (o estudante só lista os próprios) | `name` |
+| Questões do simulado | `/api/mock-exam-questions` | `mockExamId`, `questionId` | `statement` da questão |
+| Usuários | `/api/users` | `userRoleId` | `username`, `email` |
+| Perfis | `/api/user-roles` | — | `description` |
 
 Quando mais de um filtro é enviado, vale apenas o primeiro na ordem da tabela
-— exceto em `/api/questions`, onde todos os filtros valem juntos.
+— exceto em `/api/questions`, onde todos os filtros valem juntos. O `search`
+fica fora dessa ordem: ele sempre se soma ao filtro que estiver valendo.
 
-### Questões: paginação e sorteio
+### Paginação
 
-`GET /api/questions` é paginada e cada filtro se soma aos outros, então
-`?entranceExamId=1&knowledgeAreaId=2` devolve as questões daquele vestibular
-naquela área. Como a questão é classificada por tópico **ou** por matéria,
-`subjectId` e `knowledgeAreaId` valem pelos dois caminhos: a matéria (ou área)
-da própria questão e a do tópico dela.
+Toda listagem (`GET /api/<recurso>`) é paginada, além dos filtros:
 
 | Parâmetro | Padrão | Observações |
 |---|---|---|
-| `page` | `0` | Número da página; negativo responde `400` |
-| `size` | `20` | Tamanho da página, de 1 a 100; fora disso responde `400` |
+| `page` | `1` | Número da página, a partir de 1; zero ou negativo responde `400` |
+| `limit` | `20` | Tamanho da página, de 1 a 100; fora disso responde `400` |
 
 O resultado sai ordenado por `id`, então nenhum registro aparece em duas
 páginas. A resposta é um envelope, e não uma lista solta:
 
 ```json
 {
-  "content": [ { "id": 1, "statement": "..." } ],
-  "page": 0,
-  "size": 20,
+  "content": [ { "id": 1, "name": "..." } ],
+  "page": 1,
+  "limit": 20,
   "totalElements": 137,
   "totalPages": 7,
   "last": false
 }
 ```
+
+As rotas de desempenho e `GET /api/questions/draw` não são paginadas.
+
+### Busca
+
+Toda listagem, e também `GET /api/questions/draw`, aceita `search`: um trecho
+de texto, de até 100 caracteres, procurado sem diferenciar maiúsculas nos
+campos da última coluna da tabela acima. `?search=rio` em `/api/cities` devolve
+"Rio de Janeiro" e "Rio Branco". Valor vazio é ignorado, e `%` e `_` valem como
+texto, não como curinga. Nas questões a busca nunca olha a `explanation`, o que
+deixaria o estudante sondar o gabarito.
+
+### Questões: filtros e sorteio
+
+Em `GET /api/questions` cada filtro se soma aos outros, então
+`?entranceExamId=1&knowledgeAreaId=2` devolve as questões daquele vestibular
+naquela área. Como a questão é classificada por tópico **ou** por matéria,
+`subjectId` e `knowledgeAreaId` valem pelos dois caminhos: a matéria (ou área)
+da própria questão e a do tópico dela.
 
 `GET /api/questions/draw` aceita os mesmos filtros mais `size` (padrão 10, até
 100) e devolve as questões já embaralhadas — o simulado é montado no servidor,
@@ -592,4 +608,3 @@ endereços já vêm cadastrados pelas migrations.
 - Não há rate limiting nem bloqueio temporário após tentativas de login
   falhas.
 - Não há refresh token: quando o token expira, é preciso fazer login de novo.
-- Só `/api/questions` é paginada; as outras listagens ainda devolvem todos os

@@ -2,13 +2,15 @@ package com.pontuo.api_pontuo.service;
 
 import com.pontuo.api_pontuo.entity.Topic;
 import com.pontuo.api_pontuo.entity.Subject;
+import com.pontuo.api_pontuo.repository.LikePattern;
 import com.pontuo.api_pontuo.repository.SubjectRepository;
 import com.pontuo.api_pontuo.repository.TopicRepository;
 
 import jakarta.persistence.EntityNotFoundException;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
-import java.util.List;
 import java.util.Optional;
 
 @Service
@@ -23,16 +25,16 @@ public class TopicService {
         this.subjectRepository = subjectRepository;
     }
 
-    public List<Topic> findAll() {
-        return repository.findAll();
+    public Page<Topic> findAll(String search, Pageable pageable) {
+        return repository.search(null, LikePattern.contains(search), pageable);
     }
 
-    public List<Topic> findBySubjectId(Long subjectId) {
+    public Page<Topic> findBySubjectId(Long subjectId, String search, Pageable pageable) {
         if (!subjectRepository.existsById(subjectId)) {
             throw new EntityNotFoundException(
                     "Subject não encontrada: id=" + subjectId);
         }
-        return repository.findBySubjectId(subjectId);
+        return repository.search(subjectId, LikePattern.contains(search), pageable);
     }
 
     public Optional<Topic> findById(Long id) {

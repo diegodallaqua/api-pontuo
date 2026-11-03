@@ -8,6 +8,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
+import org.springframework.data.domain.PageImpl;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.JwtRequestPostProcessor;
@@ -17,6 +18,8 @@ import org.springframework.test.web.servlet.MockMvc;
 import java.util.List;
 import java.util.Optional;
 
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -56,25 +59,25 @@ class AnswerOptionControllerTest {
     @Test
     @DisplayName("estudante recebe a alternativa sem o gabarito")
     void naoDeveVazarGabaritoParaEstudante() throws Exception {
-        when(service.findByQuestionId(7L)).thenReturn(List.of(alternativaCorreta()));
+        when(service.findByQuestionId(eq(7L), any(), any())).thenReturn(new PageImpl<>(List.of(alternativaCorreta())));
 
         mockMvc.perform(get("/api/answer-options").param("questionId", "7").with(estudante()))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$[0].letter").value("A"))
-                .andExpect(jsonPath("$[0].text").value("Texto da alternativa"))
-                .andExpect(jsonPath("$[0].rightAnswer").doesNotExist())
-                .andExpect(jsonPath("$[0].question.explanation").doesNotExist());
+                .andExpect(jsonPath("$.content[0].letter").value("A"))
+                .andExpect(jsonPath("$.content[0].text").value("Texto da alternativa"))
+                .andExpect(jsonPath("$.content[0].rightAnswer").doesNotExist())
+                .andExpect(jsonPath("$.content[0].question.explanation").doesNotExist());
     }
 
     @Test
     @DisplayName("administrador recebe o gabarito, que ele precisa para revisar o cadastro")
     void deveMostrarGabaritoParaAdministrador() throws Exception {
-        when(service.findByQuestionId(7L)).thenReturn(List.of(alternativaCorreta()));
+        when(service.findByQuestionId(eq(7L), any(), any())).thenReturn(new PageImpl<>(List.of(alternativaCorreta())));
 
         mockMvc.perform(get("/api/answer-options").param("questionId", "7").with(administrador()))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$[0].rightAnswer").value(true))
-                .andExpect(jsonPath("$[0].question.explanation").value("Explicação"));
+                .andExpect(jsonPath("$.content[0].rightAnswer").value(true))
+                .andExpect(jsonPath("$.content[0].question.explanation").value("Explicação"));
     }
 
     @Test

@@ -7,12 +7,15 @@ package com.pontuo.api_pontuo.dto;
  * <p>Como a questão é classificada por tópico OU por matéria, {@code subjectId}
  * e {@code knowledgeAreaId} valem pelos dois caminhos: a matéria (ou área) da
  * própria questão e a do tópico dela.
+ *
+ * <p>{@code search} é o texto como o cliente mandou: trecho do enunciado.
  */
 public record QuestionFilterDTO(
         Long entranceExamId,
         Long knowledgeAreaId,
         Long subjectId,
         Long topicId,
-        Short difficulty
+        Short difficulty,
+        String search
 ) {
 }

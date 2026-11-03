@@ -35,9 +35,9 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.Positive;
+import jakarta.validation.constraints.Size;
 
 import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 
@@ -48,8 +48,8 @@ import java.util.List;
 public class QuestionController {
 
     /**
-     * Teto do tamanho de página e do sorteio. O catálogo tem milhares de
-     * questões: sem teto uma única chamada arrastaria tudo.
+     * Teto do sorteio. O catálogo tem milhares de questões: sem teto uma
+     * única chamada arrastaria tudo.
      */
     private static final int MAX_SIZE = 100;
 
@@ -75,15 +75,16 @@ public class QuestionController {
             @RequestParam(required = false)
             @Min(value = 1, message = DIFFICULTY_RANGE)
             @Max(value = 3, message = DIFFICULTY_RANGE) Short difficulty,
-            @RequestParam(defaultValue = "0") @Min(value = 0, message = "page não pode ser negativo") int page,
-            @RequestParam(defaultValue = "20")
-            @Min(value = 1, message = "size deve estar entre 1 e " + MAX_SIZE)
-            @Max(value = MAX_SIZE, message = "size deve estar entre 1 e " + MAX_SIZE) int size) {
-        // Ordem fixa por id: sem ordenação definida a mesma questão poderia
-        // aparecer em duas páginas, ou em nenhuma.
-        PageRequest pageRequest = PageRequest.of(page, size, Sort.by(Sort.Direction.ASC, "id"));
+            @RequestParam(required = false)
+            @Size(max = Search.MAX_LENGTH, message = Search.MESSAGE) String search,
+            @RequestParam(defaultValue = Pagination.DEFAULT_PAGE)
+            @Min(value = 1, message = Pagination.PAGE_MESSAGE) int page,
+            @RequestParam(defaultValue = Pagination.DEFAULT_LIMIT)
+            @Min(value = 1, message = Pagination.LIMIT_MESSAGE)
+            @Max(value = Pagination.MAX_LIMIT, message = Pagination.LIMIT_MESSAGE) int limit) {
+        PageRequest pageRequest = Pagination.of(page, limit);
         return PageResponseDTO.of(service
-                .search(toFilter(entranceExamId, knowledgeAreaId, subjectId, topicId, difficulty),
+                .search(toFilter(entranceExamId, knowledgeAreaId, subjectId, topicId, difficulty, search),
                         pageRequest)
                 .map(this::toResponseDTO));
     }
@@ -101,19 +102,21 @@ public class QuestionController {
             @RequestParam(required = false)
             @Min(value = 1, message = DIFFICULTY_RANGE)
             @Max(value = 3, message = DIFFICULTY_RANGE) Short difficulty,
+            @RequestParam(required = false)
+            @Size(max = Search.MAX_LENGTH, message = Search.MESSAGE) String search,
             @RequestParam(defaultValue = "10")
             @Min(value = 1, message = "size deve estar entre 1 e " + MAX_SIZE)
             @Max(value = MAX_SIZE, message = "size deve estar entre 1 e " + MAX_SIZE) int size) {
         return service
-                .draw(toFilter(entranceExamId, knowledgeAreaId, subjectId, topicId, difficulty), size)
+                .draw(toFilter(entranceExamId, knowledgeAreaId, subjectId, topicId, difficulty, search), size)
                 .stream()
                 .map(this::toDrawResponseDTO)
                 .toList();
     }
 
     private QuestionFilterDTO toFilter(Long entranceExamId, Long knowledgeAreaId,
-                                       Long subjectId, Long topicId, Short difficulty) {
-        return new QuestionFilterDTO(entranceExamId, knowledgeAreaId, subjectId, topicId, difficulty);
+                                       Long subjectId, Long topicId, Short difficulty, String search) {
+        return new QuestionFilterDTO(entranceExamId, knowledgeAreaId, subjectId, topicId, difficulty, search);
     }
 
     @GetMapping("/{id}")

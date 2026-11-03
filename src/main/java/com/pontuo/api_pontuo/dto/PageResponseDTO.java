@@ -12,16 +12,17 @@ import java.util.List;
 public record PageResponseDTO<T>(
         List<T> content,
         int page,
-        int size,
+        int limit,
         long totalElements,
         int totalPages,
         boolean last
 ) {
 
+    /** O Spring Data conta as páginas a partir de 0; o cliente, a partir de 1. */
     public static <T> PageResponseDTO<T> of(Page<T> page) {
         return new PageResponseDTO<>(
                 page.getContent(),
-                page.getNumber(),
+                page.getNumber() + 1,
                 page.getSize(),
                 page.getTotalElements(),
                 page.getTotalPages(),

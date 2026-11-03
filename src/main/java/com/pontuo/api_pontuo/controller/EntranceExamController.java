@@ -5,6 +5,7 @@ import com.pontuo.api_pontuo.dto.CityResponseDTO;
 import com.pontuo.api_pontuo.dto.EntranceExamRequestDTO;
 import com.pontuo.api_pontuo.dto.EntranceExamResponseDTO;
 import com.pontuo.api_pontuo.dto.InstitutionResponseDTO;
+import com.pontuo.api_pontuo.dto.PageResponseDTO;
 import com.pontuo.api_pontuo.dto.StateResponseDTO;
 import com.pontuo.api_pontuo.entity.Address;
 import com.pontuo.api_pontuo.entity.City;
@@ -15,12 +16,15 @@ import com.pontuo.api_pontuo.service.EntranceExamService;
 
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.Positive;
+import jakarta.validation.constraints.Size;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
 
 @RestController
 @RequestMapping("/api/entrance-exams")
@@ -33,20 +37,26 @@ public class EntranceExamController {
     }
 
     @GetMapping
-    public List<EntranceExamResponseDTO> findAll(
+    public PageResponseDTO<EntranceExamResponseDTO> findAll(
             @RequestParam(required = false) Long institutionId,
-            @RequestParam(required = false) Short year) {
-        List<EntranceExam> entranceExams;
+            @RequestParam(required = false) Short year,
+            @RequestParam(required = false)
+            @Size(max = Search.MAX_LENGTH, message = Search.MESSAGE) String search,
+            @RequestParam(defaultValue = Pagination.DEFAULT_PAGE)
+            @Min(value = 1, message = Pagination.PAGE_MESSAGE) int page,
+            @RequestParam(defaultValue = Pagination.DEFAULT_LIMIT)
+            @Min(value = 1, message = Pagination.LIMIT_MESSAGE)
+            @Max(value = Pagination.MAX_LIMIT, message = Pagination.LIMIT_MESSAGE) int limit) {
+        PageRequest pageRequest = Pagination.of(page, limit);
+        Page<EntranceExam> entranceExams;
         if (institutionId != null) {
-            entranceExams = service.findByInstitutionId(institutionId);
+            entranceExams = service.findByInstitutionId(institutionId, search, pageRequest);
         } else if (year != null) {
-            entranceExams = service.findByYear(year);
+            entranceExams = service.findByYear(year, search, pageRequest);
         } else {
-            entranceExams = service.findAll();
+            entranceExams = service.findAll(search, pageRequest);
         }
-        return entranceExams.stream()
-                .map(this::toResponseDTO)
-                .toList();
+        return PageResponseDTO.of(entranceExams.map(this::toResponseDTO));
     }
 
     @GetMapping("/{id}")

@@ -1,12 +1,14 @@
 package com.pontuo.api_pontuo.service;
 
 import com.pontuo.api_pontuo.entity.UserRole;
+import com.pontuo.api_pontuo.repository.LikePattern;
 import com.pontuo.api_pontuo.repository.UserRoleRepository;
 
 import jakarta.persistence.EntityNotFoundException;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
-import java.util.List;
 import java.util.Optional;
 
 @Service
@@ -18,8 +20,8 @@ public class UserRoleService {
         this.repository = repository;
     }
 
-    public List<UserRole> findAll() {
-        return repository.findAll();
+    public Page<UserRole> findAll(String search, Pageable pageable) {
+        return repository.search(LikePattern.contains(search), pageable);
     }
 
     public Optional<UserRole> findById(Long id) {

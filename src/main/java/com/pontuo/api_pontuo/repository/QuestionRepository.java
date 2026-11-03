@@ -23,6 +23,9 @@ public interface QuestionRepository extends JpaRepository<Question, Long> {
      *
      * <p>Os joins são LEFT de propósito: tópico e matéria são opcionais, e um
      * INNER join aqui esconderia questões classificadas pelo outro caminho.
+     *
+     * <p>{@code search} é o padrão de {@link LikePattern#contains} e olha só o
+     * enunciado: buscar na resolução deixaria o estudante sondar o gabarito.
      */
     String SEARCH_WHERE = """
             WHERE (:entranceExamId IS NULL OR entranceExam.id = :entranceExamId)
@@ -34,6 +37,7 @@ public interface QuestionRepository extends JpaRepository<Question, Long> {
                    OR knowledgeArea.id = :knowledgeAreaId
                    OR topicKnowledgeArea.id = :knowledgeAreaId)
               AND (:difficulty IS NULL OR q.difficulty = :difficulty)
+              AND (:search IS NULL OR LOWER(q.statement) LIKE :search ESCAPE '!')
             """;
 
     String SEARCH_JOINS = """
@@ -80,6 +84,7 @@ public interface QuestionRepository extends JpaRepository<Question, Long> {
                           @Param("subjectId") Long subjectId,
                           @Param("topicId") Long topicId,
                           @Param("difficulty") Short difficulty,
+                          @Param("search") String search,
                           Pageable pageable);
 
     /**
@@ -92,7 +97,8 @@ public interface QuestionRepository extends JpaRepository<Question, Long> {
                          @Param("knowledgeAreaId") Long knowledgeAreaId,
                          @Param("subjectId") Long subjectId,
                          @Param("topicId") Long topicId,
-                         @Param("difficulty") Short difficulty);
+                         @Param("difficulty") Short difficulty,
+                         @Param("search") String search);
 
     @EntityGraph(attributePaths = {
             "entranceExam.institution.address.city.state",

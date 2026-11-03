@@ -10,6 +10,7 @@ import com.pontuo.api_pontuo.entity.Topic;
 import com.pontuo.api_pontuo.repository.AnswerOptionRepository;
 import com.pontuo.api_pontuo.repository.EntranceExamRepository;
 import com.pontuo.api_pontuo.repository.KnowledgeAreaRepository;
+import com.pontuo.api_pontuo.repository.LikePattern;
 import com.pontuo.api_pontuo.repository.QuestionImageRepository;
 import com.pontuo.api_pontuo.repository.QuestionRepository;
 import com.pontuo.api_pontuo.repository.SubjectRepository;
@@ -65,6 +66,7 @@ public class QuestionService {
                 filter.subjectId(),
                 filter.topicId(),
                 filter.difficulty(),
+                LikePattern.contains(filter.search()),
                 pageable);
     }
 
@@ -84,7 +86,8 @@ public class QuestionService {
                 filter.knowledgeAreaId(),
                 filter.subjectId(),
                 filter.topicId(),
-                filter.difficulty()));
+                filter.difficulty(),
+                LikePattern.contains(filter.search())));
         Collections.shuffle(ids);
         List<Long> drawn = List.copyOf(ids.subList(0, Math.min(size, ids.size())));
         if (drawn.isEmpty()) {

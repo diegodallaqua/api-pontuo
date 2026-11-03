@@ -1,6 +1,7 @@
 package com.pontuo.api_pontuo.controller;
 
 import com.pontuo.api_pontuo.dto.KnowledgeAreaResponseDTO;
+import com.pontuo.api_pontuo.dto.PageResponseDTO;
 import com.pontuo.api_pontuo.dto.SubjectResponseDTO;
 import com.pontuo.api_pontuo.dto.TopicRequestDTO;
 import com.pontuo.api_pontuo.dto.TopicResponseDTO;
@@ -11,12 +12,15 @@ import com.pontuo.api_pontuo.entity.Topic;
 import com.pontuo.api_pontuo.service.TopicService;
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.Positive;
+import jakarta.validation.constraints.Size;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
 
 @RestController
 @RequestMapping("/api/topics")
@@ -29,14 +33,20 @@ public class TopicController {
     }
 
     @GetMapping
-    public List<TopicResponseDTO> findAll(
-            @RequestParam(required = false) Long subjectId) {
-        List<Topic> topics = subjectId == null
-                ? service.findAll()
-                : service.findBySubjectId(subjectId);
-        return topics.stream()
-                .map(this::toResponseDTO)
-                .toList();
+    public PageResponseDTO<TopicResponseDTO> findAll(
+            @RequestParam(required = false) Long subjectId,
+            @RequestParam(required = false)
+            @Size(max = Search.MAX_LENGTH, message = Search.MESSAGE) String search,
+            @RequestParam(defaultValue = Pagination.DEFAULT_PAGE)
+            @Min(value = 1, message = Pagination.PAGE_MESSAGE) int page,
+            @RequestParam(defaultValue = Pagination.DEFAULT_LIMIT)
+            @Min(value = 1, message = Pagination.LIMIT_MESSAGE)
+            @Max(value = Pagination.MAX_LIMIT, message = Pagination.LIMIT_MESSAGE) int limit) {
+        PageRequest pageRequest = Pagination.of(page, limit);
+        Page<Topic> topics = subjectId == null
+                ? service.findAll(search, pageRequest)
+                : service.findBySubjectId(subjectId, search, pageRequest);
+        return PageResponseDTO.of(topics.map(this::toResponseDTO));
     }
 
     @GetMapping("/{id}")

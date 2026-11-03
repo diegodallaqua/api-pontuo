@@ -2,18 +2,22 @@ package com.pontuo.api_pontuo.controller;
 
 import com.pontuo.api_pontuo.dto.CityRequestDTO;
 import com.pontuo.api_pontuo.dto.CityResponseDTO;
+import com.pontuo.api_pontuo.dto.PageResponseDTO;
 import com.pontuo.api_pontuo.dto.StateResponseDTO;
 import com.pontuo.api_pontuo.entity.City;
 import com.pontuo.api_pontuo.entity.State;
 import com.pontuo.api_pontuo.service.CityService;
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.Positive;
+import jakarta.validation.constraints.Size;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
 
 @RestController
 @RequestMapping("/api/cities")
@@ -26,14 +30,20 @@ public class CityController {
     }
 
     @GetMapping
-    public List<CityResponseDTO> findAll(
-            @RequestParam(required = false) Long stateId) {
-        List<City> cities = stateId == null
-                ? service.findAll()
-                : service.findByStateId(stateId);
-        return cities.stream()
-                .map(this::toResponseDTO)
-                .toList();
+    public PageResponseDTO<CityResponseDTO> findAll(
+            @RequestParam(required = false) Long stateId,
+            @RequestParam(required = false)
+            @Size(max = Search.MAX_LENGTH, message = Search.MESSAGE) String search,
+            @RequestParam(defaultValue = Pagination.DEFAULT_PAGE)
+            @Min(value = 1, message = Pagination.PAGE_MESSAGE) int page,
+            @RequestParam(defaultValue = Pagination.DEFAULT_LIMIT)
+            @Min(value = 1, message = Pagination.LIMIT_MESSAGE)
+            @Max(value = Pagination.MAX_LIMIT, message = Pagination.LIMIT_MESSAGE) int limit) {
+        PageRequest pageRequest = Pagination.of(page, limit);
+        Page<City> cities = stateId == null
+                ? service.findAll(search, pageRequest)
+                : service.findByStateId(stateId, search, pageRequest);
+        return PageResponseDTO.of(cities.map(this::toResponseDTO));
     }
 
     @GetMapping("/{id}")

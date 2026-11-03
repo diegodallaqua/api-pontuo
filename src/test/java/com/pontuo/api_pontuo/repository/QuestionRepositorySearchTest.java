@@ -64,7 +64,7 @@ class QuestionRepositorySearchTest {
     @Test
     @DisplayName("filtro por matéria pega a questão da matéria e a do tópico dela")
     void deveFiltrarPorMateriaNosDoisCaminhos() {
-        List<Long> encontradas = ids(repository.search(null, null, materia.getId(), null, null, PAGINA));
+        List<Long> encontradas = ids(repository.search(null, null, materia.getId(), null, null, null, PAGINA));
 
         assertAll(
                 () -> assertTrue(encontradas.contains(porMateria.getId())),
@@ -76,7 +76,7 @@ class QuestionRepositorySearchTest {
     void deveFiltrarPorAreaNosDoisCaminhos() {
         Long areaId = materia.getKnowledgeArea().getId();
 
-        List<Long> encontradas = ids(repository.search(null, areaId, null, null, null, PAGINA));
+        List<Long> encontradas = ids(repository.search(null, areaId, null, null, null, null, PAGINA));
 
         assertAll(
                 () -> assertTrue(encontradas.contains(porMateria.getId())),
@@ -87,7 +87,7 @@ class QuestionRepositorySearchTest {
     @DisplayName("os filtros se somam: vestibular, matéria e tópico juntos")
     void deveCombinarOsFiltros() {
         List<Long> encontradas = ids(repository.search(
-                porTopico.getEntranceExam().getId(), null, materia.getId(), topico.getId(), null,
+                porTopico.getEntranceExam().getId(), null, materia.getId(), topico.getId(), null, null,
                 PAGINA));
 
         assertAll(
@@ -103,9 +103,9 @@ class QuestionRepositorySearchTest {
         short outroNivel = (short) (doTopico == 3 ? 1 : doTopico + 1);
 
         List<Long> mesmoNivel = ids(
-                repository.search(null, null, materia.getId(), null, doTopico, PAGINA));
+                repository.search(null, null, materia.getId(), null, doTopico, null, PAGINA));
         List<Long> nivelDiferente = ids(
-                repository.search(null, null, materia.getId(), null, outroNivel, PAGINA));
+                repository.search(null, null, materia.getId(), null, outroNivel, null, PAGINA));
 
         assertAll(
                 () -> assertTrue(mesmoNivel.contains(porTopico.getId())),
@@ -115,8 +115,8 @@ class QuestionRepositorySearchTest {
     @Test
     @DisplayName("searchIds devolve os mesmos ids da busca")
     void deveListarOsMesmosIds() {
-        List<Long> daBusca = ids(repository.search(null, null, materia.getId(), null, null, PAGINA));
-        List<Long> doSorteio = repository.searchIds(null, null, materia.getId(), null, null);
+        List<Long> daBusca = ids(repository.search(null, null, materia.getId(), null, null, null, PAGINA));
+        List<Long> doSorteio = repository.searchIds(null, null, materia.getId(), null, null, null);
 
         assertAll(
                 () -> assertEquals(daBusca.size(), doSorteio.size()),
@@ -124,9 +124,34 @@ class QuestionRepositorySearchTest {
     }
 
     @Test
+    @DisplayName("search acha trecho do enunciado sem diferenciar maiúsculas")
+    void deveBuscarNoEnunciado() {
+        List<Long> encontradas = ids(repository.search(null, null, materia.getId(), null, null,
+                LikePattern.contains("CLASSIFICADA PELO TÓPICO"), PAGINA));
+
+        assertAll(
+                () -> assertTrue(encontradas.contains(porTopico.getId())),
+                () -> assertFalse(encontradas.contains(porMateria.getId())));
+    }
+
+    @Test
+    @DisplayName("% digitado no search é texto, não curinga")
+    void deveTratarCuringaComoTexto() {
+        Question comPorcento = fixtures.questao("Rendimento de 100% na prova JUnit");
+        Question semPorcento = fixtures.questao("Rendimento de 1000 na prova JUnit");
+
+        List<Long> encontradas = ids(repository.search(null, null, null, null, null,
+                LikePattern.contains("100%"), PAGINA));
+
+        assertAll(
+                () -> assertTrue(encontradas.contains(comPorcento.getId())),
+                () -> assertFalse(encontradas.contains(semPorcento.getId())));
+    }
+
+    @Test
     @DisplayName("a página respeita o size e ainda conta o total")
     void devePaginar() {
-        Page<Question> pagina = repository.search(null, null, materia.getId(), null, null,
+        Page<Question> pagina = repository.search(null, null, materia.getId(), null, null, null,
                 PageRequest.of(0, 1, Sort.by(Sort.Direction.ASC, "id")));
 
         assertAll(

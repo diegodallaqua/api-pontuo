@@ -15,6 +15,8 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.context.annotation.Import;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -87,8 +89,8 @@ class AuthControllerFlowTest {
                 .thenAnswer(invocation -> Optional.ofNullable(usuariosPorUsername.get(invocation.<String>getArgument(0))));
         when(userRepository.findByEmail(anyString()))
                 .thenAnswer(invocation -> buscarPorEmail(invocation.getArgument(0)));
-        when(userRepository.findAll())
-                .thenAnswer(invocation -> List.copyOf(usuariosPorUsername.values()));
+        when(userRepository.search(any(), any(), any(Pageable.class)))
+                .thenAnswer(invocation -> new PageImpl<>(List.copyOf(usuariosPorUsername.values())));
     }
 
     private Optional<User> buscarPorEmail(String email) {
@@ -196,8 +198,8 @@ class AuthControllerFlowTest {
 
         mockMvc.perform(get("/api/users").with(jwt().authorities(new SimpleGrantedAuthority("ROLE_ADMINISTRADOR"))))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$[0].username").value("maria"))
-                .andExpect(jsonPath("$[0].password").doesNotExist());
+                .andExpect(jsonPath("$.content[0].username").value("maria"))
+                .andExpect(jsonPath("$.content[0].password").doesNotExist());
     }
 
     private void cadastrarMaria() throws Exception {

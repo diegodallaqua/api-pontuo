@@ -278,60 +278,75 @@ Every resource follows the same CRUD pattern:
 
 | Method | Route | Response |
 |---|---|---|
-| `GET` | `/api/<resource>` | List, with optional filters |
+| `GET` | `/api/<resource>` | Paginated list, with optional filters |
 | `GET` | `/api/<resource>/{id}` | A single record, or `404` |
 | `POST` | `/api/<resource>` | `201` with the created record |
 | `PUT` | `/api/<resource>/{id}` | Updated record |
 | `DELETE` | `/api/<resource>/{id}` | `204` |
 
-| Resource | Route | List filters |
-|---|---|---|
-| States | `/api/states` | — |
-| Cities | `/api/cities` | `stateId` |
-| Addresses | `/api/addresses` | `cityId` |
-| Institutions | `/api/institutions` | `acronym` |
-| Entrance exams | `/api/entrance-exams` | `institutionId`, `year` |
-| Knowledge areas | `/api/knowledge-areas` | — |
-| Subjects | `/api/subjects` | `knowledgeAreaId` |
-| Topics | `/api/topics` | `subjectId` |
-| Questions | `/api/questions` | `entranceExamId`, `knowledgeAreaId`, `subjectId`, `topicId`, `page`, `size` |
-| Answer options | `/api/answer-options` | `questionId` |
-| Question images | `/api/question-images` | `questionId` |
-| Mock exams | `/api/mock-exams` | `userId` (students only list their own) |
-| Mock exam questions | `/api/mock-exam-questions` | `mockExamId`, `questionId` |
-| Users | `/api/users` | `userRoleId` |
-| Roles | `/api/user-roles` | — |
+| Resource | Route | List filters | `search` looks in |
+|---|---|---|---|
+| States | `/api/states` | — | `name` |
+| Cities | `/api/cities` | `stateId` | `name` |
+| Addresses | `/api/addresses` | `cityId` | `street`, `neighborhood`, `complement` |
+| Institutions | `/api/institutions` | `acronym` | `name`, `acronym` |
+| Entrance exams | `/api/entrance-exams` | `institutionId`, `year` | `name`, `stage` |
+| Knowledge areas | `/api/knowledge-areas` | — | `description` |
+| Subjects | `/api/subjects` | `knowledgeAreaId` | `description` |
+| Topics | `/api/topics` | `subjectId` | `description` |
+| Questions | `/api/questions` | `entranceExamId`, `knowledgeAreaId`, `subjectId`, `topicId`, `difficulty` | `statement` |
+| Answer options | `/api/answer-options` | `questionId` | `text` |
+| Question images | `/api/question-images` | `questionId` | `subtitle` |
+| Mock exams | `/api/mock-exams` | `userId` (students only list their own) | `name` |
+| Mock exam questions | `/api/mock-exam-questions` | `mockExamId`, `questionId` | the question's `statement` |
+| Users | `/api/users` | `userRoleId` | `username`, `email` |
+| Roles | `/api/user-roles` | — | `description` |
 
 When more than one filter is sent, only the first one in the table's order
 applies — except on `/api/questions`, where every filter is applied together.
+`search` is not part of that order: it always adds to the filter in use.
 
-### Questions: paging and drawing
+### Paging
 
-`GET /api/questions` is paginated and every filter it takes is combined with
-the others, so `?entranceExamId=1&knowledgeAreaId=2` returns the questions of
-that entrance exam in that knowledge area. Because a question is classified by
-topic **or** by subject, `subjectId` and `knowledgeAreaId` match through both
-paths: the question's own subject (or area) and the subject (or area) of its
-topic.
+Every listing (`GET /api/<resource>`) is paginated, on top of its filters:
 
 | Parameter | Default | Notes |
 |---|---|---|
-| `page` | `0` | Page number; negative is `400` |
-| `size` | `20` | Page size, from 1 to 100; outside that range is `400` |
+| `page` | `1` | Page number, starting at 1; zero or negative is `400` |
+| `limit` | `20` | Page size, from 1 to 100; outside that range is `400` |
 
 Results are ordered by `id`, so a record never shows up on two pages. The
 response is an envelope, not a bare list:
 
 ```json
 {
-  "content": [ { "id": 1, "statement": "..." } ],
-  "page": 0,
-  "size": 20,
+  "content": [ { "id": 1, "name": "..." } ],
+  "page": 1,
+  "limit": 20,
   "totalElements": 137,
   "totalPages": 7,
   "last": false
 }
 ```
+
+The performance routes and `GET /api/questions/draw` are not paginated.
+
+### Search
+
+Every listing, and `GET /api/questions/draw`, also takes `search`: a piece of
+text, up to 100 characters, matched case-insensitively against the fields in
+the last column of the table above. `?search=rio` on `/api/cities` returns
+"Rio de Janeiro" and "Rio Branco". An empty value is ignored, and `%` and `_`
+are matched literally, not as wildcards. On questions it never looks at the
+`explanation`, which would let a student probe the answer key.
+
+### Questions: filtering and drawing
+
+Every filter `GET /api/questions` takes is combined with the others, so
+`?entranceExamId=1&knowledgeAreaId=2` returns the questions of that entrance
+exam in that knowledge area. Because a question is classified by topic **or**
+by subject, `subjectId` and `knowledgeAreaId` match through both paths: the
+question's own subject (or area) and the subject (or area) of its topic.
 
 `GET /api/questions/draw` takes the same filters plus `size` (default 10, up to
 100) and returns a shuffled list of questions — the mock exam is assembled on
@@ -596,4 +611,3 @@ services: addresses are already loaded by the migrations.
 - There is no rate limiting or temporary lockout after failed login attempts.
 - There is no refresh token: when the token expires, the user must log in
   again.
-- Only `/api/questions` is paginated; the other listings still return every

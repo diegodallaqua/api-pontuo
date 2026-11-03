@@ -20,6 +20,8 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.security.access.AccessDeniedException;
 
 import java.time.LocalDate;
@@ -34,6 +36,7 @@ import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -43,6 +46,8 @@ import static org.mockito.Mockito.when;
 @ExtendWith(MockitoExtension.class)
 @DisplayName("MockExamHasQuestionService")
 class MockExamHasQuestionServiceTest {
+
+    private static final Pageable PAGINA = PageRequest.of(0, 20);
 
     private static final Long SIMULADO_ID = 1L;
     private static final Long QUESTAO_ID = 2L;
@@ -470,10 +475,10 @@ class MockExamHasQuestionServiceTest {
             when(mockExamRepository.findById(SIMULADO_ID)).thenReturn(Optional.empty());
 
             EntityNotFoundException ex = assertThrows(EntityNotFoundException.class,
-                    () -> service.findByMockExamId(SIMULADO_ID));
+                    () -> service.findByMockExamId(SIMULADO_ID, null, PAGINA));
 
             assertEquals("MockExam não encontrado: id=1", ex.getMessage());
-            verify(repository, never()).findByMockExamId(any());
+            verify(repository, never()).search(any(), any(), any(), any(), any());
         }
 
         @Test
@@ -482,9 +487,9 @@ class MockExamHasQuestionServiceTest {
             simuladoExiste();
             doThrow(new AccessDeniedException("negado")).when(currentUser).checkAccess(aluno);
 
-            assertThrows(AccessDeniedException.class, () -> service.findByMockExamId(SIMULADO_ID));
+            assertThrows(AccessDeniedException.class, () -> service.findByMockExamId(SIMULADO_ID, null, PAGINA));
 
-            verify(repository, never()).findByMockExamId(any());
+            verify(repository, never()).search(any(), any(), any(), any(), any());
         }
 
         @Test
@@ -494,10 +499,10 @@ class MockExamHasQuestionServiceTest {
             when(currentUser.isAdministrador()).thenReturn(false);
             when(currentUser.get()).thenReturn(aluno);
 
-            service.findByQuestionId(QUESTAO_ID);
+            service.findByQuestionId(QUESTAO_ID, null, PAGINA);
 
-            verify(repository).findByQuestionIdAndMockExamUserId(QUESTAO_ID, 7L);
-            verify(repository, never()).findByQuestionId(any());
+            verify(repository).search(null, QUESTAO_ID, 7L, null, PAGINA);
+            verify(repository, never()).search(any(), any(), isNull(), any(), any());
         }
 
         @Test
@@ -506,10 +511,10 @@ class MockExamHasQuestionServiceTest {
             when(questionRepository.existsById(QUESTAO_ID)).thenReturn(false);
 
             EntityNotFoundException ex = assertThrows(EntityNotFoundException.class,
-                    () -> service.findByQuestionId(QUESTAO_ID));
+                    () -> service.findByQuestionId(QUESTAO_ID, null, PAGINA));
 
             assertEquals("Question não encontrada: id=2", ex.getMessage());
-            verify(repository, never()).findByQuestionId(any());
+            verify(repository, never()).search(any(), any(), any(), any(), any());
         }
     }
 }

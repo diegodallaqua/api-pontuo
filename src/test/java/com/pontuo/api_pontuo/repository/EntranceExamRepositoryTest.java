@@ -10,6 +10,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest;
 import org.springframework.boot.jdbc.test.autoconfigure.AutoConfigureTestDatabase;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.data.domain.Pageable;
 
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -46,7 +47,7 @@ class EntranceExamRepositoryTest {
     @Test
     @DisplayName("migrations cadastram as duas etapas do ENEM 2025")
     void deveTerAsDuasEtapasDoEnem() {
-        Set<String> etapas = repository.findByInstitutionId(INEP_ID).stream()
+        Set<String> etapas = repository.search(INEP_ID, null, null, Pageable.unpaged()).stream()
                 .filter(exame -> exame.getName().equals("ENEM") && exame.getYear() == 2025)
                 .map(EntranceExam::getStage)
                 .collect(Collectors.toSet());

@@ -14,6 +14,9 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.time.LocalDate;
@@ -32,6 +35,8 @@ import static org.mockito.Mockito.when;
 @ExtendWith(MockitoExtension.class)
 @DisplayName("UserService")
 class UserServiceTest {
+
+    private static final Pageable PAGINA = PageRequest.of(0, 20);
 
     private static final Long ROLE_ID = 1L;
     private static final String DEFAULT_ROLE_DESCRIPTION = "Estudante";
@@ -339,9 +344,9 @@ class UserServiceTest {
         @DisplayName("findByUserRoleId retorna os usuários da role")
         void deveListarUsuariosDaRole() {
             when(userRoleRepository.existsById(ROLE_ID)).thenReturn(true);
-            when(repository.findByUserRoleId(ROLE_ID)).thenReturn(List.of(newUser));
+            when(repository.search(ROLE_ID, null, PAGINA)).thenReturn(new PageImpl<>(List.of(newUser)));
 
-            assertThat(service.findByUserRoleId(ROLE_ID)).containsExactly(newUser);
+            assertThat(service.findByUserRoleId(ROLE_ID, null, PAGINA).getContent()).containsExactly(newUser);
         }
 
         @Test
@@ -349,11 +354,11 @@ class UserServiceTest {
         void deveFalharQuandoRoleNaoExiste() {
             when(userRoleRepository.existsById(99L)).thenReturn(false);
 
-            assertThatThrownBy(() -> service.findByUserRoleId(99L))
+            assertThatThrownBy(() -> service.findByUserRoleId(99L, null, PAGINA))
                     .isInstanceOf(EntityNotFoundException.class)
                     .hasMessageContaining("UserRole não encontrada: id=99");
 
-            verify(repository, never()).findByUserRoleId(any());
+            verify(repository, never()).search(any(), any(), any());
         }
 
         @Test

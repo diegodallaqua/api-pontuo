@@ -10,6 +10,10 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.JwtRequestPostProcessor;
@@ -34,6 +38,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @DisplayName("MockExamHasQuestionController")
 class MockExamHasQuestionControllerTest {
 
+    /** Página pedida quando a chamada não informa page nem limit. */
+    private static final Pageable PRIMEIRA_PAGINA = PageRequest.of(0, 20, Sort.by(Sort.Direction.ASC, "id"));
+
     @Autowired
     private MockMvc mockMvc;
 
@@ -54,23 +61,27 @@ class MockExamHasQuestionControllerTest {
     @Test
     @DisplayName("mockExamId tem precedência sobre questionId")
     void deveFiltrarSoPeloSimulado() throws Exception {
+        when(service.findByMockExamId(1L, null, PRIMEIRA_PAGINA)).thenReturn(Page.empty(PRIMEIRA_PAGINA));
+
         mockMvc.perform(get("/api/mock-exam-questions").param("mockExamId", "1").param("questionId", "2")
                         .with(estudante()))
                 .andExpect(status().isOk());
 
-        verify(service).findByMockExamId(1L);
-        verify(service, never()).findByQuestionId(any());
-        verify(service, never()).findAll();
+        verify(service).findByMockExamId(1L, null, PRIMEIRA_PAGINA);
+        verify(service, never()).findByQuestionId(any(), any(), any());
+        verify(service, never()).findAll(any(), any());
     }
 
     @Test
     @DisplayName("questionId sozinho filtra pela questão")
     void deveFiltrarPelaQuestao() throws Exception {
+        when(service.findByQuestionId(2L, null, PRIMEIRA_PAGINA)).thenReturn(Page.empty(PRIMEIRA_PAGINA));
+
         mockMvc.perform(get("/api/mock-exam-questions").param("questionId", "2").with(estudante()))
                 .andExpect(status().isOk());
 
-        verify(service).findByQuestionId(2L);
-        verify(service, never()).findAll();
+        verify(service).findByQuestionId(2L, null, PRIMEIRA_PAGINA);
+        verify(service, never()).findAll(any(), any());
     }
 
     @Test

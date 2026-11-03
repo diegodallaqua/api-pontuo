@@ -100,7 +100,7 @@ class QuestionServiceTest {
     }
 
     private static QuestionFilterDTO semFiltro() {
-        return new QuestionFilterDTO(null, null, null, null, null);
+        return new QuestionFilterDTO(null, null, null, null, null, null);
     }
 
     private static Question comId(Long id) {
@@ -300,21 +300,31 @@ class QuestionServiceTest {
             when(knowledgeAreaRepository.existsById(AREA_ID)).thenReturn(true);
             when(subjectRepository.existsById(MATERIA_ID)).thenReturn(true);
             when(topicRepository.existsById(TOPICO_ID)).thenReturn(true);
-            when(repository.search(VESTIBULAR_ID, AREA_ID, MATERIA_ID, TOPICO_ID, null, pagina))
+            when(repository.search(VESTIBULAR_ID, AREA_ID, MATERIA_ID, TOPICO_ID, null, null, pagina))
                     .thenReturn(esperada);
 
             Page<Question> resultado = service.search(
-                    new QuestionFilterDTO(VESTIBULAR_ID, AREA_ID, MATERIA_ID, TOPICO_ID, null),
+                    new QuestionFilterDTO(VESTIBULAR_ID, AREA_ID, MATERIA_ID, TOPICO_ID, null, null),
                     pagina);
 
             assertSame(esperada, resultado);
         }
 
         @Test
+        @DisplayName("search chega ao repository como padrão de LIKE")
+        void deveConverterSearchEmPadrao() {
+            Pageable pagina = PageRequest.of(0, 20);
+
+            service.search(new QuestionFilterDTO(null, null, null, null, null, "Mitose"), pagina);
+
+            verify(repository).search(null, null, null, null, null, "%mitose%", pagina);
+        }
+
+        @Test
         @DisplayName("sem filtro não consulta nenhum repositório de validação")
         void deveBuscarTudoSemValidarNada() {
             Pageable pagina = PageRequest.of(0, 20);
-            when(repository.search(null, null, null, null, null, pagina))
+            when(repository.search(null, null, null, null, null, null, pagina))
                     .thenReturn(new PageImpl<>(List.of()));
 
             service.search(semFiltro(), pagina);
@@ -329,11 +339,11 @@ class QuestionServiceTest {
             when(knowledgeAreaRepository.existsById(AREA_ID)).thenReturn(false);
 
             EntityNotFoundException ex = assertThrows(EntityNotFoundException.class,
-                    () -> service.search(new QuestionFilterDTO(null, AREA_ID, null, null, null),
+                    () -> service.search(new QuestionFilterDTO(null, AREA_ID, null, null, null, null),
                             PageRequest.of(0, 20)));
 
             assertEquals("KnowledgeArea não encontrada: id=4", ex.getMessage());
-            verify(repository, never()).search(any(), any(), any(), any(), any(), any());
+            verify(repository, never()).search(any(), any(), any(), any(), any(), any(), any());
         }
 
         @Test
@@ -342,11 +352,11 @@ class QuestionServiceTest {
             when(entranceExamRepository.existsById(VESTIBULAR_ID)).thenReturn(false);
 
             EntityNotFoundException ex = assertThrows(EntityNotFoundException.class,
-                    () -> service.search(new QuestionFilterDTO(VESTIBULAR_ID, null, null, TOPICO_ID, null),
+                    () -> service.search(new QuestionFilterDTO(VESTIBULAR_ID, null, null, TOPICO_ID, null, null),
                             PageRequest.of(0, 20)));
 
             assertEquals("EntranceExam não encontrado: id=1", ex.getMessage());
-            verify(repository, never()).search(any(), any(), any(), any(), any(), any());
+            verify(repository, never()).search(any(), any(), any(), any(), any(), any(), any());
         }
     }
 
@@ -358,7 +368,7 @@ class QuestionServiceTest {
         @DisplayName("sorteia a quantidade pedida entre as candidatas, sem repetir")
         void deveSortearAQuantidadePedida() {
             List<Long> candidatas = List.of(1L, 2L, 3L, 4L, 5L);
-            when(repository.searchIds(null, null, null, null, null)).thenReturn(candidatas);
+            when(repository.searchIds(null, null, null, null, null, null)).thenReturn(candidatas);
             when(repository.findByIdIn(anyCollection())).thenAnswer(invocation ->
                     idsDoArgumento(invocation.getArgument(0)).stream()
                             .map(QuestionServiceTest::comId)
@@ -377,7 +387,7 @@ class QuestionServiceTest {
         @Test
         @DisplayName("mantém a ordem do sorteio, e não a ordem do banco")
         void deveManterAOrdemDoSorteio() {
-            when(repository.searchIds(null, null, null, null, null)).thenReturn(List.of(1L, 2L, 3L));
+            when(repository.searchIds(null, null, null, null, null, null)).thenReturn(List.of(1L, 2L, 3L));
             // O banco devolve na ordem dele; aqui, invertida de propósito.
             when(repository.findByIdIn(anyCollection())).thenAnswer(invocation -> {
                 List<Long> ids = new ArrayList<>(idsDoArgumento(invocation.getArgument(0)));
@@ -398,7 +408,7 @@ class QuestionServiceTest {
         @Test
         @DisplayName("devolve o que existe quando há menos questões que o pedido")
         void deveDevolverOQueExiste() {
-            when(repository.searchIds(null, null, null, null, null)).thenReturn(List.of(7L, 8L));
+            when(repository.searchIds(null, null, null, null, null, null)).thenReturn(List.of(7L, 8L));
             when(repository.findByIdIn(anyCollection())).thenAnswer(invocation ->
                     idsDoArgumento(invocation.getArgument(0)).stream()
                             .map(QuestionServiceTest::comId)
@@ -410,7 +420,7 @@ class QuestionServiceTest {
         @Test
         @DisplayName("sem candidata não vai ao banco buscar questão nenhuma")
         void deveDevolverVazioSemCandidatas() {
-            when(repository.searchIds(null, null, null, null, null)).thenReturn(List.of());
+            when(repository.searchIds(null, null, null, null, null, null)).thenReturn(List.of());
 
             assertEquals(List.of(), service.draw(semFiltro(), 10));
             verify(repository, never()).findByIdIn(any());
@@ -419,7 +429,7 @@ class QuestionServiceTest {
         @Test
         @DisplayName("cada questão recebe as alternativas e imagens que são dela")
         void deveAgruparAlternativasEImagensPorQuestao() {
-            when(repository.searchIds(null, null, null, null, null)).thenReturn(List.of(1L, 2L));
+            when(repository.searchIds(null, null, null, null, null, null)).thenReturn(List.of(1L, 2L));
             when(repository.findByIdIn(anyCollection())).thenAnswer(invocation ->
                     idsDoArgumento(invocation.getArgument(0)).stream()
                             .map(QuestionServiceTest::comId)
@@ -442,7 +452,7 @@ class QuestionServiceTest {
         @Test
         @DisplayName("sem candidata não busca alternativa nem imagem")
         void naoDeveBuscarConteudoSemCandidatas() {
-            when(repository.searchIds(null, null, null, null, null)).thenReturn(List.of());
+            when(repository.searchIds(null, null, null, null, null, null)).thenReturn(List.of());
 
             service.draw(semFiltro(), 10);
 
@@ -467,10 +477,10 @@ class QuestionServiceTest {
             when(topicRepository.existsById(TOPICO_ID)).thenReturn(false);
 
             EntityNotFoundException ex = assertThrows(EntityNotFoundException.class,
-                    () -> service.draw(new QuestionFilterDTO(null, null, null, TOPICO_ID, null), 5));
+                    () -> service.draw(new QuestionFilterDTO(null, null, null, TOPICO_ID, null, null), 5));
 
             assertEquals("Topic não encontrado: id=2", ex.getMessage());
-            verify(repository, never()).searchIds(any(), any(), any(), any(), any());
+            verify(repository, never()).searchIds(any(), any(), any(), any(), any(), any());
         }
 
         @SuppressWarnings("unchecked")

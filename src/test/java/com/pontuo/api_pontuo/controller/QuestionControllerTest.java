@@ -125,7 +125,7 @@ class QuestionControllerTest {
 
             ArgumentCaptor<QuestionFilterDTO> filtro = ArgumentCaptor.forClass(QuestionFilterDTO.class);
             verify(service).search(filtro.capture(), any());
-            assertEquals(new QuestionFilterDTO(1L, 2L, 3L, 4L, (short) 3), filtro.getValue());
+            assertEquals(new QuestionFilterDTO(1L, 2L, 3L, 4L, (short) 3, null), filtro.getValue());
         }
 
         @Test
@@ -136,7 +136,7 @@ class QuestionControllerTest {
             mockMvc.perform(get("/api/questions").with(administrador()))
                     .andExpect(status().isOk());
 
-            verify(service).search(new QuestionFilterDTO(null, null, null, null, null),
+            verify(service).search(new QuestionFilterDTO(null, null, null, null, null, null),
                     PageRequest.of(0, 20, Sort.by(Sort.Direction.ASC, "id")));
         }
 
@@ -157,39 +157,40 @@ class QuestionControllerTest {
     class Paginacao {
 
         @Test
-        @DisplayName("page e size vão para a consulta e voltam no envelope")
+        @DisplayName("page e limit vão para a consulta e voltam no envelope, com page a partir de 1")
         void devePaginar() throws Exception {
+            // O Spring Data conta a partir de 0: a página 3 do cliente é o índice 2.
             Pageable pagina = PageRequest.of(2, 5, Sort.by(Sort.Direction.ASC, "id"));
             when(service.search(any(), eq(pagina)))
                     .thenReturn(new PageImpl<>(List.of(questao(11L)), pagina, 42));
 
-            mockMvc.perform(get("/api/questions").param("page", "2").param("size", "5")
+            mockMvc.perform(get("/api/questions").param("page", "3").param("limit", "5")
                             .with(administrador()))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.content[0].id").value(11))
-                    .andExpect(jsonPath("$.page").value(2))
-                    .andExpect(jsonPath("$.size").value(5))
+                    .andExpect(jsonPath("$.page").value(3))
+                    .andExpect(jsonPath("$.limit").value(5))
                     .andExpect(jsonPath("$.totalElements").value(42))
                     .andExpect(jsonPath("$.totalPages").value(9))
                     .andExpect(jsonPath("$.last").value(false));
         }
 
         @Test
-        @DisplayName("size acima do teto responde 400 sem chamar o serviço")
-        void deveRecusarSizeAcimaDoTeto() throws Exception {
-            mockMvc.perform(get("/api/questions").param("size", "101").with(administrador()))
+        @DisplayName("limit acima do teto responde 400 sem chamar o serviço")
+        void deveRecusarLimitAcimaDoTeto() throws Exception {
+            mockMvc.perform(get("/api/questions").param("limit", "101").with(administrador()))
                     .andExpect(status().isBadRequest())
-                    .andExpect(jsonPath("$.size").value("size deve estar entre 1 e 100"));
+                    .andExpect(jsonPath("$.limit").value("limit deve estar entre 1 e 100"));
 
             verifyNoInteractions(service);
         }
 
         @Test
-        @DisplayName("page negativo responde 400 sem chamar o serviço")
-        void deveRecusarPageNegativo() throws Exception {
-            mockMvc.perform(get("/api/questions").param("page", "-1").with(administrador()))
+        @DisplayName("page zero responde 400 sem chamar o serviço")
+        void deveRecusarPageZero() throws Exception {
+            mockMvc.perform(get("/api/questions").param("page", "0").with(administrador()))
                     .andExpect(status().isBadRequest())
-                    .andExpect(jsonPath("$.page").value("page não pode ser negativo"));
+                    .andExpect(jsonPath("$.page").value("page deve ser maior que zero"));
 
             verifyNoInteractions(service);
         }
@@ -213,7 +214,7 @@ class QuestionControllerTest {
                     .andExpect(jsonPath("$[0].id").value(3))
                     .andExpect(jsonPath("$[1].id").value(9));
 
-            verify(service).draw(new QuestionFilterDTO(null, 2L, null, null, null), 2);
+            verify(service).draw(new QuestionFilterDTO(null, 2L, null, null, null, null), 2);
         }
 
         @Test
@@ -225,7 +226,7 @@ class QuestionControllerTest {
                     .andExpect(status().isOk())
                     .andExpect(content().json("[]"));
 
-            verify(service).draw(new QuestionFilterDTO(null, null, null, null, null), 10);
+            verify(service).draw(new QuestionFilterDTO(null, null, null, null, null, null), 10);
         }
 
         @Test
@@ -262,7 +263,7 @@ class QuestionControllerTest {
                             .with(administrador()))
                     .andExpect(status().isOk());
 
-            verify(service).draw(new QuestionFilterDTO(null, null, null, null, (short) 2), 10);
+            verify(service).draw(new QuestionFilterDTO(null, null, null, null, (short) 2, null), 10);
         }
 
         @Test
