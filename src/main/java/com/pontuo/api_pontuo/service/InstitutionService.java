@@ -18,7 +18,6 @@ public class InstitutionService {
     private final InstitutionRepository repository;
     private final AddressRepository addressRepository;
 
-
     public InstitutionService(InstitutionRepository repository, AddressRepository addressRepository) {
         this.repository = repository;
         this.addressRepository = addressRepository;

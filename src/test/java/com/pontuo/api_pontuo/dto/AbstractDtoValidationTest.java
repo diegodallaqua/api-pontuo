@@ -14,7 +14,6 @@ import java.time.ZoneOffset;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-
 abstract class AbstractDtoValidationTest {
 
     private static final Clock RELOGIO = Clock.fixed(Instant.parse("2026-09-12T12:00:00Z"), ZoneOffset.UTC);

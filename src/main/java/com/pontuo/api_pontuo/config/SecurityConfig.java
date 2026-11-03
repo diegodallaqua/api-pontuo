@@ -204,7 +204,6 @@ public class SecurityConfig {
         return new ProviderManager(provider);
     }
 
-    // Usado para gravar a senha do usuário com hash, nunca em texto puro.
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();

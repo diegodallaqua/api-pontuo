@@ -542,16 +542,6 @@ Database tests use the MariaDB configured in `application.properties` and roll
 back everything they write at the end of each test. When there is no MariaDB on
 `localhost:3306`, they are skipped instead of failing.
 
-Some tests describe rules that are not implemented yet (annotated with
-`@Pendente`, the "red" step of TDD) and are disabled by default. To run them:
-
-```bash
-./mvnw test -Dpontuo.pendentes=true
-```
-
-Once a rule is implemented and its test passes, remove the `@Pendente`
-annotation from it.
-
 ## Continuous integration
 
 The [`.github/workflows/ci.yml`](.github/workflows/ci.yml) workflow runs on
@@ -587,7 +577,7 @@ which also shows up in the generated Javadoc.
 | Pattern | Where | How it shows up |
 |---|---|---|
 | **Singleton** | `service`, `controller`, `security`, `config` | Every component (`@Service`, `@RestController`, `@Component`, `@Bean`) is a singleton-scoped bean: the container creates one instance and injects it through the constructor. No static field and no `getInstance()`, which keeps the classes testable with mocks. |
-| **Repository** | [`repository`](src/main/java/com/pontuo/api_pontuo/repository) | Each interface extends `JpaRepository` and exposes queries in domain terms (`findByCityId`, `findByUsername`). Spring Data generates the implementation at runtime. |
+| **Repository** | [`repository`](src/main/java/com/pontuo/api_pontuo/repository) | Each interface extends `JpaRepository` and exposes queries in domain terms (`findByUsername`, `existsByEmail`). Spring Data generates the implementation at runtime. |
 | **Facade** | [`controller`](src/main/java/com/pontuo/api_pontuo/controller) | Each controller exposes one simple route and hides the service, the repositories, request validation and DTO ↔ entity conversion from the client. Documented example: [`AddressController`](src/main/java/com/pontuo/api_pontuo/controller/AddressController.java). |
 | **Strategy** | [`security`](src/main/java/com/pontuo/api_pontuo/security) | Spring Security extension points defined as interfaces: `AppUserDetailsService` (`UserDetailsService`), `RevokedTokenValidator` (`OAuth2TokenValidator<Jwt>`) and the `PasswordEncoder` picked in a single `@Bean`. Callers depend on the interface, not on the implementation. |
 

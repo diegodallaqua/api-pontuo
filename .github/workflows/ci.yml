@@ -40,7 +40,6 @@ jobs:
       - name: Permitir execução do Maven Wrapper
         run: chmod +x mvnw
 
-      # Os testes @Pendente só rodam com -Dpontuo.pendentes=true.
       - name: Testes
         run: ./mvnw -B verify
         env:

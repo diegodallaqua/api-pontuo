@@ -79,16 +79,8 @@ public class MockExamHasQuestion {
         return answeredAt;
     }
 
-    public void setAnsweredAt(LocalDateTime answeredAt) {
-        this.answeredAt = answeredAt;
-    }
-
     public Boolean getIsCorrect() {
         return isCorrect;
-    }
-
-    public void setIsCorrect(Boolean isCorrect) {
-        this.isCorrect = isCorrect;
     }
 
     public MockExam getMockExam() {
@@ -109,9 +101,5 @@ public class MockExamHasQuestion {
 
     public AnswerOption getAnswerOption() {
         return answerOption;
-    }
-
-    public void setAnswerOption(AnswerOption answerOption) {
-        this.answerOption = answerOption;
     }
 }

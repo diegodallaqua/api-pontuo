@@ -80,7 +80,6 @@ public class AnswerOptionService {
         repository.deleteById(id);
     }
 
-    // Cada letra aparece uma única vez por questão.
     private void validateLetterFree(Long questionId, String letter) {
         if (repository.existsByQuestionIdAndLetter(questionId, letter)) {
             throw new IllegalArgumentException(
@@ -89,7 +88,6 @@ public class AnswerOptionService {
         }
     }
 
-    // Uma questão de múltipla escolha tem uma única alternativa correta.
     private void validateNoRightAnswerYet(Long questionId) {
         if (repository.existsByQuestionIdAndRightAnswerTrue(questionId)) {
             throw new IllegalArgumentException(

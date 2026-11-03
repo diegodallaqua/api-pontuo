@@ -11,7 +11,6 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
-import java.util.List;
 import java.util.Optional;
 
 @Service
@@ -19,7 +18,6 @@ public class EntranceExamService {
 
     private final EntranceExamRepository repository;
     private final InstitutionRepository institutionRepository;
-
 
     public EntranceExamService(EntranceExamRepository repository, InstitutionRepository institutionRepository) {
         this.repository = repository;
@@ -32,10 +30,6 @@ public class EntranceExamService {
 
     public Page<EntranceExam> findByYear(short year, String search, Pageable pageable) {
         return repository.search(null, year, LikePattern.contains(search), pageable);
-    }
-
-    public List<EntranceExam> findByInstitution(Institution institution) {
-        return repository.findByInstitution(institution);
     }
 
     public Page<EntranceExam> findByInstitutionId(Long institutionId, String search, Pageable pageable) {

@@ -107,10 +107,6 @@ public class Question {
         return createdAt;
     }
 
-    public void setCreatedAt(LocalDateTime createdAt) {
-        this.createdAt = createdAt;
-    }
-
     public EntranceExam getEntranceExam() {
         return entranceExam;
     }

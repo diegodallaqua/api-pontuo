@@ -152,7 +152,6 @@ public class MockExamHasQuestionService {
         return link.getAnswerOption() == null ? null : link.getAnswerOption().getId();
     }
 
-    // A mesma questão não pode aparecer duas vezes no mesmo simulado.
     private void validateNotLinked(Long mockExamId, Long questionId) {
         if (repository.existsByMockExamIdAndQuestionId(mockExamId, questionId)) {
             throw new IllegalArgumentException(
@@ -161,7 +160,6 @@ public class MockExamHasQuestionService {
         }
     }
 
-    // O simulado não recebe mais questões do que numQuestions.
     private void validateLimit(MockExam mockExam) {
         if (repository.countByMockExamId(mockExam.getId()) >= mockExam.getNumQuestions()) {
             throw new IllegalArgumentException(

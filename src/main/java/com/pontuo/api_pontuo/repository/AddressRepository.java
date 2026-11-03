@@ -9,14 +9,12 @@ import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
-import org.springframework.stereotype.Repository;
 
 /**
  * <b>Repository</b> de {@link Address}. A implementação é gerada pelo Spring
  * Data a partir da assinatura dos métodos; {@code @EntityGraph} carrega a
  * cidade junto do endereço, evitando consultas N+1 na listagem.
  */
-@Repository
 public interface AddressRepository extends JpaRepository<Address, Long> {
 
     @Override

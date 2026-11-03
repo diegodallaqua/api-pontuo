@@ -11,9 +11,7 @@ import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
-import org.springframework.stereotype.Repository;
 
-@Repository
 public interface QuestionRepository extends JpaRepository<Question, Long> {
 
     /**
@@ -62,13 +60,6 @@ public interface QuestionRepository extends JpaRepository<Question, Long> {
             LEFT JOIN FETCH q.subject subject
             LEFT JOIN FETCH subject.knowledgeArea knowledgeArea
             """;
-
-    @Override
-    @EntityGraph(attributePaths = {
-            "entranceExam.institution.address.city.state",
-            "topic.subject.knowledgeArea",
-            "subject.knowledgeArea"})
-    List<Question> findAll();
 
     @Override
     @EntityGraph(attributePaths = {

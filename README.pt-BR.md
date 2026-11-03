@@ -538,17 +538,6 @@ Os testes com banco usam o MariaDB configurado no `application.properties` e
 desfazem tudo o que gravam ao final de cada teste. Quando não há MariaDB em
 `localhost:3306`, eles são pulados em vez de falhar.
 
-Alguns testes descrevem regras ainda não implementadas (marcados com
-`@Pendente`, na etapa "red" do TDD) e ficam desligados por padrão. Para
-executá-los:
-
-```bash
-./mvnw test -Dpontuo.pendentes=true
-```
-
-Quando uma regra for implementada e o teste passar, remova a anotação
-`@Pendente` dele.
-
 ## Integração contínua
 
 O workflow [`.github/workflows/ci.yml`](.github/workflows/ci.yml) roda a cada
@@ -584,7 +573,7 @@ sustenta, visível também no Javadoc gerado.
 | Padrão | Onde está | Como aparece |
 |---|---|---|
 | **Singleton** | `service`, `controller`, `security`, `config` | Todo componente (`@Service`, `@RestController`, `@Component`, `@Bean`) é um bean de escopo singleton: o contêiner cria uma instância e a injeta por construtor. Sem campo estático nem `getInstance()`, o que mantém as classes testáveis com mocks. |
-| **Repository** | [`repository`](src/main/java/com/pontuo/api_pontuo/repository) | Cada interface estende `JpaRepository` e expõe consultas em termos de domínio (`findByCityId`, `findByUsername`). O Spring Data gera a implementação em tempo de execução. |
+| **Repository** | [`repository`](src/main/java/com/pontuo/api_pontuo/repository) | Cada interface estende `JpaRepository` e expõe consultas em termos de domínio (`findByUsername`, `existsByEmail`). O Spring Data gera a implementação em tempo de execução. |
 | **Facade** | [`controller`](src/main/java/com/pontuo/api_pontuo/controller) | Cada controller expõe uma rota simples e esconde do cliente o service, os repositórios, a validação e a conversão DTO ↔ entidade. Exemplo comentado: [`AddressController`](src/main/java/com/pontuo/api_pontuo/controller/AddressController.java). |
 | **Strategy** | [`security`](src/main/java/com/pontuo/api_pontuo/security) | Pontos de extensão do Spring Security definidos como interface: `AppUserDetailsService` (`UserDetailsService`), `RevokedTokenValidator` (`OAuth2TokenValidator<Jwt>`) e o `PasswordEncoder` escolhido em um único `@Bean`. Quem chama depende da interface, não da implementação. |
 

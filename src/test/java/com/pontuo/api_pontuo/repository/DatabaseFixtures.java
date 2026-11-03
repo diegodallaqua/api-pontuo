@@ -12,7 +12,6 @@ import org.springframework.boot.test.context.TestComponent;
 
 import java.time.LocalDate;
 
-
 @TestComponent
 public class DatabaseFixtures {
 

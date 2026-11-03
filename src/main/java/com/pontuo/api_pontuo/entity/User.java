@@ -110,10 +110,6 @@ public class User {
         return createdAt;
     }
 
-    public void setCreatedAt(LocalDateTime createdAt) {
-        this.createdAt = createdAt;
-    }
-
     public UserRole getUserRole() {
         return userRole;
     }
