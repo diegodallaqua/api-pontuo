@@ -33,6 +33,13 @@ class EntranceExamRequestDTOValidationTest extends AbstractDtoValidationTest {
     }
 
     @Test
+    @DisplayName("exige o ano, sem assumir zero quando ausente")
+    void deveExigirAno() {
+        EntranceExamRequestDTO semAno = new EntranceExamRequestDTO("ENEM", null, "1º Dia", 1L);
+        assertEquals(Set.of("year é obrigatório"), mensagens(semAno, "year"));
+    }
+
+    @Test
     @DisplayName("rejeita etapa com mais de 40 caracteres")
     void deveRejeitarEtapaLonga() {
         assertEquals(Set.of("stage deve ter no máximo 40 caracteres"), mensagens(comEtapa("a".repeat(41)), "stage"));
