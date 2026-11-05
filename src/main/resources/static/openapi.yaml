@@ -3646,6 +3646,69 @@ paths:
                     message: "Acesso negado: o registro pertence a outro usuário."
         "404":
           $ref: "#/components/responses/NotFound"
+  /api/mock-exams/{id}/review:
+    get:
+      tags:
+        - Simulados
+      operationId: getMockExamReview
+      summary: Revisão do simulado
+      description: |-
+        Questões do simulado finalizado, na ordem em que foram vinculadas, cada uma com a alternativa marcada, a correção, a `explanation`, as imagens e todas as alternativas com `rightAnswer`. Sem paginação: a lista tem no máximo `numQuestions` itens.
+
+        Recusada (`409`) antes da finalização, para o gabarito não sair com a prova em andamento.
+
+        `correct` foi congelado no momento da resposta, enquanto `rightAnswer` é o gabarito atual: se a alternativa correta for corrigida depois da finalização, os dois podem divergir.
+
+        **Acesso:** usuário autenticado. O estudante só acessa os próprios registros (`403` nos de outra pessoa); o administrador acessa todos.
+
+        **Exemplo cURL**
+
+        ```bash
+        curl -X GET "http://localhost:8080/api/mock-exams/1/review" \
+          -H "Authorization: Bearer $TOKEN"
+        ```
+      parameters:
+        - $ref: "#/components/parameters/Id"
+      responses:
+        "200":
+          description: "Questões do simulado com resposta, gabarito e explicação."
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/MockExamReviewQuestionResponse"
+        "400":
+          $ref: "#/components/responses/InvalidId"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          description: "Perfil sem permissão ou simulado de outro usuário."
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorMessage"
+              examples:
+                dono:
+                  summary: "Simulado de outro usuário"
+                  value:
+                    message: "Acesso negado: o registro pertence a outro usuário."
+        "404":
+          description: "Registro (ou registro relacionado) não encontrado."
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorMessage"
+              example:
+                message: "MockExam não encontrado: id=99"
+        "409":
+          description: "Simulado ainda não finalizado."
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorMessage"
+              example:
+                message: "simulado ainda não foi finalizado: id=1"
   /api/mock-exam-questions:
     get:
       tags:
@@ -5975,7 +6038,7 @@ components:
         explanation:
           type: string
           nullable: true
-          description: "Preenchida só para o administrador (ou no resultado de simulado finalizado)."
+          description: "Preenchida só para o administrador (ou nas questões e na revisão de simulado finalizado)."
           example: "A mitose mantém o número de cromossomos..."
         difficulty:
           type: integer
@@ -6268,6 +6331,58 @@ components:
           items:
             $ref: "#/components/schemas/PerformanceItemResponse"
           description: "Aproveitamento por matéria. Vazio antes da finalização."
+    AnswerOptionReviewResponse:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+          example: 3
+        letter:
+          type: string
+          example: A
+        text:
+          type: string
+          example: "A mitose produz duas células-filhas geneticamente idênticas."
+        rightAnswer:
+          type: boolean
+          description: "Gabarito atual da alternativa."
+          example: true
+    MockExamReviewQuestionResponse:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+          description: "Id do vínculo simulado–questão."
+          example: 1
+        answeredAt:
+          type: string
+          nullable: true
+          description: "Data e hora local do servidor (ISO-8601, sem fuso). Nulo para questão em branco."
+          example: "2026-10-28T14:07:30"
+        correct:
+          type: boolean
+          nullable: true
+          description: "Correção congelada na resposta. Nula para questão em branco."
+          example: false
+        selectedAnswerOptionId:
+          type: integer
+          format: int64
+          nullable: true
+          description: "Alternativa marcada pelo estudante. Nula para questão em branco."
+          example: 4
+        question:
+          $ref: "#/components/schemas/QuestionResponse"
+        images:
+          type: array
+          items:
+            $ref: "#/components/schemas/QuestionImageSummaryResponse"
+        answerOptions:
+          type: array
+          description: "Todas as alternativas da questão, em ordem de letra."
+          items:
+            $ref: "#/components/schemas/AnswerOptionReviewResponse"
     MockExamQuestionRequest:
       type: object
       required:

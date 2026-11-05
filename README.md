@@ -374,6 +374,7 @@ change.
 | Answer | `POST` or `PUT /api/mock-exam-questions` | Body: `mockExamId`, `questionId`, `answerOptionId`. The server records `answeredAt` and the grading; a null `answerOptionId` clears the answer. |
 | Finish | `POST /api/mock-exams/{id}/finish` | Computes and stores `answeredCount`, `correctCount` and `accuracy`, locks the mock exam and returns the report. |
 | Read the report | `GET /api/mock-exams/{id}/result` | Mock exam and accuracy per subject, computed from the answers (empty list before finishing). Each subject has the same format as `/api/performance/me/subjects`. |
+| Review | `GET /api/mock-exams/{id}/review` | Questions in exam order, each with the chosen option, the grading, the `explanation`, the images and every option with `rightAnswer`. `409` before finishing. |
 
 Rules:
 

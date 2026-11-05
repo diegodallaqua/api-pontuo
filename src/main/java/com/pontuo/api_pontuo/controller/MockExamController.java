@@ -1,15 +1,40 @@
 package com.pontuo.api_pontuo.controller;
 
+import com.pontuo.api_pontuo.dto.AddressResponseDTO;
+import com.pontuo.api_pontuo.dto.AnswerOptionReviewResponseDTO;
+import com.pontuo.api_pontuo.dto.CityResponseDTO;
+import com.pontuo.api_pontuo.dto.EntranceExamResponseDTO;
+import com.pontuo.api_pontuo.dto.InstitutionResponseDTO;
+import com.pontuo.api_pontuo.dto.KnowledgeAreaResponseDTO;
 import com.pontuo.api_pontuo.dto.MockExamRequestDTO;
 import com.pontuo.api_pontuo.dto.MockExamResponseDTO;
 import com.pontuo.api_pontuo.dto.MockExamResultResponseDTO;
+import com.pontuo.api_pontuo.dto.MockExamReviewQuestionResponseDTO;
 import com.pontuo.api_pontuo.dto.PageResponseDTO;
+import com.pontuo.api_pontuo.dto.QuestionImageSummaryResponseDTO;
+import com.pontuo.api_pontuo.dto.QuestionResponseDTO;
+import com.pontuo.api_pontuo.dto.StateResponseDTO;
+import com.pontuo.api_pontuo.dto.SubjectResponseDTO;
+import com.pontuo.api_pontuo.dto.TopicResponseDTO;
 import com.pontuo.api_pontuo.dto.UserResponseDTO;
 import com.pontuo.api_pontuo.dto.UserRoleResponseDTO;
+import com.pontuo.api_pontuo.entity.Address;
+import com.pontuo.api_pontuo.entity.AnswerOption;
+import com.pontuo.api_pontuo.entity.City;
+import com.pontuo.api_pontuo.entity.EntranceExam;
+import com.pontuo.api_pontuo.entity.Institution;
+import com.pontuo.api_pontuo.entity.KnowledgeArea;
 import com.pontuo.api_pontuo.entity.MockExam;
+import com.pontuo.api_pontuo.entity.MockExamHasQuestion;
+import com.pontuo.api_pontuo.entity.Question;
+import com.pontuo.api_pontuo.entity.QuestionImage;
+import com.pontuo.api_pontuo.entity.State;
+import com.pontuo.api_pontuo.entity.Subject;
+import com.pontuo.api_pontuo.entity.Topic;
 import com.pontuo.api_pontuo.entity.User;
 import com.pontuo.api_pontuo.entity.UserRole;
 import com.pontuo.api_pontuo.service.MockExamService;
+import com.pontuo.api_pontuo.service.ReviewedQuestion;
 
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.validation.Valid;
@@ -22,6 +47,8 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/mock-exams")
@@ -99,6 +126,128 @@ public class MockExamController {
                         toResponseDTO(mockExam), service.findSubjectResults(id)))
                 .orElseThrow(() -> new EntityNotFoundException(
                         "MockExam não encontrado: id=" + id));
+    }
+
+    /** Questões do simulado finalizado com a resposta, o gabarito e a explicação. */
+    @GetMapping("/{id}/review")
+    public List<MockExamReviewQuestionResponseDTO> review(@PathVariable @Positive(message = "id deve ser maior que zero") Long id) {
+        return service.findReview(id).stream()
+                .map(this::toReviewResponseDTO)
+                .toList();
+    }
+
+    // O service só devolve a revisão de simulado finalizado, então gabarito e
+    // explicação saem para qualquer perfil.
+    private MockExamReviewQuestionResponseDTO toReviewResponseDTO(ReviewedQuestion reviewed) {
+        MockExamHasQuestion link = reviewed.link();
+        AnswerOption selected = link.getAnswerOption();
+        return new MockExamReviewQuestionResponseDTO(
+                link.getId(),
+                link.getAnsweredAt(),
+                link.getIsCorrect(),
+                selected == null ? null : selected.getId(),
+                toQuestionResponseDTO(link.getQuestion()),
+                reviewed.images().stream().map(this::toImageSummaryResponseDTO).toList(),
+                reviewed.answerOptions().stream().map(this::toOptionReviewResponseDTO).toList());
+    }
+
+    private AnswerOptionReviewResponseDTO toOptionReviewResponseDTO(AnswerOption entity) {
+        return new AnswerOptionReviewResponseDTO(
+                entity.getId(), entity.getLetter(), entity.getText(), entity.isRightAnswer());
+    }
+
+    private QuestionImageSummaryResponseDTO toImageSummaryResponseDTO(QuestionImage entity) {
+        return new QuestionImageSummaryResponseDTO(
+                entity.getId(), entity.getUrl(), entity.getSubtitle());
+    }
+
+    private QuestionResponseDTO toQuestionResponseDTO(Question entity) {
+        return new QuestionResponseDTO(
+                entity.getId(),
+                entity.getStatement(),
+                entity.getExplanation(),
+                entity.getDifficulty(),
+                entity.getCreatedAt(),
+                toEntranceExamResponseDTO(entity.getEntranceExam()),
+                toTopicResponseDTO(entity.getTopic()),
+                toSubjectResponseDTO(entity.getSubject()));
+    }
+
+    private EntranceExamResponseDTO toEntranceExamResponseDTO(EntranceExam entity) {
+        if (entity == null) {
+            return null;
+        }
+        return new EntranceExamResponseDTO(
+                entity.getId(),
+                entity.getName(),
+                entity.getYear(),
+                entity.getStage(),
+                toInstitutionResponseDTO(entity.getInstitution()));
+    }
+
+    private InstitutionResponseDTO toInstitutionResponseDTO(Institution entity) {
+        if (entity == null) {
+            return null;
+        }
+        return new InstitutionResponseDTO(
+                entity.getId(),
+                entity.getName(),
+                entity.getAcronym(),
+                toAddressResponseDTO(entity.getAddress()));
+    }
+
+    private AddressResponseDTO toAddressResponseDTO(Address entity) {
+        if (entity == null) {
+            return null;
+        }
+        return new AddressResponseDTO(
+                entity.getId(),
+                entity.getStreet(),
+                entity.getNeighborhood(),
+                entity.getNumber(),
+                entity.getComplement(),
+                toCityResponseDTO(entity.getCity()));
+    }
+
+    private CityResponseDTO toCityResponseDTO(City entity) {
+        if (entity == null) {
+            return null;
+        }
+        return new CityResponseDTO(entity.getId(), entity.getName(), toStateResponseDTO(entity.getState()));
+    }
+
+    private StateResponseDTO toStateResponseDTO(State entity) {
+        if (entity == null) {
+            return null;
+        }
+        return new StateResponseDTO(entity.getId(), entity.getName());
+    }
+
+    private TopicResponseDTO toTopicResponseDTO(Topic entity) {
+        if (entity == null) {
+            return null;
+        }
+        return new TopicResponseDTO(
+                entity.getId(),
+                entity.getDescription(),
+                toSubjectResponseDTO(entity.getSubject()));
+    }
+
+    private SubjectResponseDTO toSubjectResponseDTO(Subject entity) {
+        if (entity == null) {
+            return null;
+        }
+        return new SubjectResponseDTO(
+                entity.getId(),
+                entity.getDescription(),
+                toKnowledgeAreaResponseDTO(entity.getKnowledgeArea()));
+    }
+
+    private KnowledgeAreaResponseDTO toKnowledgeAreaResponseDTO(KnowledgeArea entity) {
+        if (entity == null) {
+            return null;
+        }
+        return new KnowledgeAreaResponseDTO(entity.getId(), entity.getDescription());
     }
 
     private MockExamResponseDTO toResponseDTO(MockExam entity) {

@@ -1,12 +1,16 @@
 package com.pontuo.api_pontuo.service;
 
 import com.pontuo.api_pontuo.dto.PerformanceItemResponseDTO;
+import com.pontuo.api_pontuo.entity.AnswerOption;
 import com.pontuo.api_pontuo.entity.MockExam;
 import com.pontuo.api_pontuo.entity.MockExamHasQuestion;
+import com.pontuo.api_pontuo.entity.QuestionImage;
 import com.pontuo.api_pontuo.entity.User;
+import com.pontuo.api_pontuo.repository.AnswerOptionRepository;
 import com.pontuo.api_pontuo.repository.LikePattern;
 import com.pontuo.api_pontuo.repository.MockExamHasQuestionRepository;
 import com.pontuo.api_pontuo.repository.MockExamRepository;
+import com.pontuo.api_pontuo.repository.QuestionImageRepository;
 import com.pontuo.api_pontuo.repository.UserRepository;
 import com.pontuo.api_pontuo.security.CurrentUser;
 
@@ -19,7 +23,9 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 /**
  * Ciclo de vida do simulado: criado, iniciado (start) e finalizado (finish).
@@ -35,15 +41,21 @@ public class MockExamService {
     private final MockExamRepository repository;
     private final UserRepository userRepository;
     private final MockExamHasQuestionRepository linkRepository;
+    private final AnswerOptionRepository answerOptionRepository;
+    private final QuestionImageRepository questionImageRepository;
     private final CurrentUser currentUser;
 
     public MockExamService(MockExamRepository repository,
                            UserRepository userRepository,
                            MockExamHasQuestionRepository linkRepository,
+                           AnswerOptionRepository answerOptionRepository,
+                           QuestionImageRepository questionImageRepository,
                            CurrentUser currentUser) {
         this.repository = repository;
         this.userRepository = userRepository;
         this.linkRepository = linkRepository;
+        this.answerOptionRepository = answerOptionRepository;
+        this.questionImageRepository = questionImageRepository;
         this.currentUser = currentUser;
     }
 
@@ -156,6 +168,40 @@ public class MockExamService {
             return List.of();
         }
         return PerformanceService.toItems(linkRepository.performanceBySubjectOfMockExam(id));
+    }
+
+    /**
+     * Revisão do simulado: cada questão, na ordem da prova, com a resposta do
+     * estudante, todas as alternativas e as imagens. Antes da finalização é
+     * recusada, senão entregaria o gabarito com a prova em andamento.
+     *
+     * <p>Alternativas e imagens vêm em duas consultas para o simulado inteiro,
+     * pelo mesmo motivo do sorteio: uma consulta por questão não escala.
+     */
+    public List<ReviewedQuestion> findReview(Long id) {
+        MockExam mockExam = findAccessible(id);
+        if (!mockExam.isFinished()) {
+            throw new IllegalArgumentException("simulado ainda não foi finalizado: id=" + id);
+        }
+
+        List<MockExamHasQuestion> links = linkRepository.findByMockExamId(id);
+        if (links.isEmpty()) {
+            return List.of();
+        }
+        List<Long> questionIds = links.stream().map(link -> link.getQuestion().getId()).toList();
+        Map<Long, List<AnswerOption>> optionsByQuestion = answerOptionRepository
+                .findByQuestionIdIn(questionIds).stream()
+                .collect(Collectors.groupingBy(option -> option.getQuestion().getId()));
+        Map<Long, List<QuestionImage>> imagesByQuestion = questionImageRepository
+                .findByQuestionIdIn(questionIds).stream()
+                .collect(Collectors.groupingBy(image -> image.getQuestion().getId()));
+
+        return links.stream()
+                .map(link -> new ReviewedQuestion(
+                        link,
+                        optionsByQuestion.getOrDefault(link.getQuestion().getId(), List.of()),
+                        imagesByQuestion.getOrDefault(link.getQuestion().getId(), List.of())))
+                .toList();
     }
 
     private MockExam findAccessible(Long id) {

@@ -236,6 +236,58 @@ class PerformanceFlowTest {
         }
 
         @Test
+        @DisplayName("a revisão é recusada antes da finalização")
+        void deveRecusarRevisaoAntesDeFinalizar() throws Exception {
+            mockMvc.perform(post("/api/mock-exams/{id}/start", simulado.getId()).with(como(aluno)))
+                    .andExpect(status().isOk());
+            vincular(genetica, alternativasGenetica[0]);
+
+            mockMvc.perform(get("/api/mock-exams/{id}/review", simulado.getId()).with(como(aluno)))
+                    .andExpect(status().isConflict())
+                    .andExpect(jsonPath("$.message")
+                            .value("simulado ainda não foi finalizado: id=" + simulado.getId()));
+        }
+
+        @Test
+        @DisplayName("a revisão traz resposta, gabarito e explicação na ordem da prova")
+        void deveRevisarSimuladoFinalizado() throws Exception {
+            genetica.setExplanation("A segunda lei de Mendel explica a segregação independente.");
+            questionRepository.saveAndFlush(genetica);
+            resolverEFinalizar();
+
+            mockMvc.perform(get("/api/mock-exams/{id}/review", simulado.getId()).with(como(aluno)))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$", hasSize(4)))
+                    .andExpect(jsonPath("$[0].question.id").value(genetica.getId()))
+                    .andExpect(jsonPath("$[0].question.explanation")
+                            .value("A segunda lei de Mendel explica a segregação independente."))
+                    .andExpect(jsonPath("$[0].correct").value(true))
+                    .andExpect(jsonPath("$[0].selectedAnswerOptionId").value(alternativasGenetica[0].getId()))
+                    .andExpect(jsonPath("$[1].question.id").value(biologia.getId()))
+                    .andExpect(jsonPath("$[1].correct").value(false))
+                    .andExpect(jsonPath("$[1].selectedAnswerOptionId").value(alternativasBiologia[1].getId()))
+                    .andExpect(jsonPath("$[1].answerOptions", hasSize(2)))
+                    .andExpect(jsonPath("$[1].answerOptions[0].letter").value("A"))
+                    .andExpect(jsonPath("$[1].answerOptions[0].rightAnswer").value(true))
+                    .andExpect(jsonPath("$[1].answerOptions[1].rightAnswer").value(false))
+                    .andExpect(jsonPath("$[1].images", hasSize(0)))
+                    .andExpect(jsonPath("$[3].question.id").value(quimicaEmBranco.getId()))
+                    .andExpect(jsonPath("$[3].correct").doesNotExist())
+                    .andExpect(jsonPath("$[3].selectedAnswerOptionId").doesNotExist())
+                    .andExpect(jsonPath("$[3].answerOptions", hasSize(2)));
+        }
+
+        @Test
+        @DisplayName("estudante não revisa o simulado de outro")
+        void deveRecusarRevisaoDeOutro() throws Exception {
+            resolverEFinalizar();
+            User outro = fixtures.estudante("junit_desempenho_outro");
+
+            mockMvc.perform(get("/api/mock-exams/{id}/review", simulado.getId()).with(como(outro)))
+                    .andExpect(status().isForbidden());
+        }
+
+        @Test
         @DisplayName("simulado finalizado pode ser excluído, levando os vínculos junto")
         void deveExcluirSimuladoFinalizado() throws Exception {
             resolverEFinalizar();

@@ -96,7 +96,13 @@ public interface MockExamHasQuestionRepository extends JpaRepository<MockExamHas
             "question.topic.subject.knowledgeArea",
             "question.subject.knowledgeArea",
             "answerOption.question"})
-    List<MockExamHasQuestion> findByMockExamId(Long mockExamId);
+    // Na ordem em que as questões entraram no simulado, que é a do sorteio.
+    @Query("""
+            SELECT l FROM MockExamHasQuestion l
+            WHERE l.mockExam.id = :mockExamId
+            ORDER BY l.id ASC
+            """)
+    List<MockExamHasQuestion> findByMockExamId(@Param("mockExamId") Long mockExamId);
 
     boolean existsByMockExamIdAndQuestionId(Long mockExamId, Long questionId);
 

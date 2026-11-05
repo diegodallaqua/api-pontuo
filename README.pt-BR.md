@@ -372,6 +372,7 @@ estudante não muda.
 | Responder | `POST` ou `PUT /api/mock-exam-questions` | Corpo: `mockExamId`, `questionId`, `answerOptionId`. O servidor registra `answeredAt` e a correção; `answerOptionId` nulo limpa a resposta. |
 | Finalizar | `POST /api/mock-exams/{id}/finish` | Calcula e grava `answeredCount`, `correctCount` e `accuracy`, trava o simulado e devolve o boletim. |
 | Consultar o boletim | `GET /api/mock-exams/{id}/result` | Simulado e aproveitamento por matéria, calculado das respostas (lista vazia antes da finalização). Cada matéria vem no mesmo formato de `/api/performance/me/subjects`. |
+| Revisar | `GET /api/mock-exams/{id}/review` | Questões na ordem da prova, cada uma com a alternativa marcada, a correção, a `explanation`, as imagens e todas as alternativas com `rightAnswer`. `409` antes da finalização. |
 
 Regras:
 

@@ -5,10 +5,13 @@ import com.pontuo.api_pontuo.entity.AnswerOption;
 import com.pontuo.api_pontuo.entity.MockExam;
 import com.pontuo.api_pontuo.entity.MockExamHasQuestion;
 import com.pontuo.api_pontuo.entity.Question;
+import com.pontuo.api_pontuo.entity.QuestionImage;
 import com.pontuo.api_pontuo.entity.User;
+import com.pontuo.api_pontuo.repository.AnswerOptionRepository;
 import com.pontuo.api_pontuo.repository.MockExamHasQuestionRepository;
 import com.pontuo.api_pontuo.repository.MockExamRepository;
 import com.pontuo.api_pontuo.repository.PerformanceRow;
+import com.pontuo.api_pontuo.repository.QuestionImageRepository;
 import com.pontuo.api_pontuo.repository.UserRepository;
 import com.pontuo.api_pontuo.security.CurrentUser;
 import jakarta.persistence.EntityNotFoundException;
@@ -62,6 +65,12 @@ class MockExamServiceTest {
 
     @Mock
     private MockExamHasQuestionRepository linkRepository;
+
+    @Mock
+    private AnswerOptionRepository answerOptionRepository;
+
+    @Mock
+    private QuestionImageRepository questionImageRepository;
 
     @Mock
     private CurrentUser currentUser;
@@ -527,6 +536,67 @@ class MockExamServiceTest {
             doThrow(new AccessDeniedException("negado")).when(currentUser).checkAccess(aluno);
 
             assertThrows(AccessDeniedException.class, () -> service.findSubjectResults(1L));
+        }
+    }
+
+    @Nested
+    @DisplayName("revisão")
+    class Revisao {
+
+        private Question questao(long id) {
+            Question questao = new Question("Enunciado " + id, "Explicação " + id, (short) 2);
+            questao.setId(id);
+            return questao;
+        }
+
+        @Test
+        @DisplayName("recusada enquanto o simulado não foi finalizado")
+        void deveRecusarAntesDaFinalizacao() {
+            simulado.setStartedAt(INICIO);
+            simuladoExiste();
+
+            IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> service.findReview(1L));
+
+            assertEquals("simulado ainda não foi finalizado: id=1", ex.getMessage());
+            verify(linkRepository, never()).findByMockExamId(any());
+        }
+
+        @Test
+        @DisplayName("recusa a revisão de simulado de outro usuário")
+        void deveRecusarSimuladoDeOutro() {
+            simuladoExiste();
+            doThrow(new AccessDeniedException("negado")).when(currentUser).checkAccess(aluno);
+
+            assertThrows(AccessDeniedException.class, () -> service.findReview(1L));
+        }
+
+        @Test
+        @DisplayName("junta alternativas e imagens de cada questão, na ordem dos vínculos")
+        void deveMontarCadaQuestao() {
+            simulado.setStartedAt(INICIO);
+            simulado.setFinishedAt(INICIO.plusMinutes(30));
+            simuladoExiste();
+            Question primeira = questao(20L);
+            Question segunda = questao(10L);
+            AnswerOption certa = new AnswerOption("A", "Certa", true, primeira);
+            AnswerOption errada = new AnswerOption("B", "Errada", false, primeira);
+            QuestionImage figura = new QuestionImage("https://cdn.pontuo.app/figura.png", null, segunda);
+            when(linkRepository.findByMockExamId(1L)).thenReturn(List.of(
+                    new MockExamHasQuestion(simulado, primeira, errada, INICIO.plusMinutes(5)),
+                    new MockExamHasQuestion(simulado, segunda)));
+            when(answerOptionRepository.findByQuestionIdIn(List.of(20L, 10L))).thenReturn(List.of(certa, errada));
+            when(questionImageRepository.findByQuestionIdIn(List.of(20L, 10L))).thenReturn(List.of(figura));
+
+            List<ReviewedQuestion> revisao = service.findReview(1L);
+
+            assertAll(
+                    () -> assertEquals(2, revisao.size()),
+                    () -> assertSame(primeira, revisao.get(0).link().getQuestion()),
+                    () -> assertEquals(List.of(certa, errada), revisao.get(0).answerOptions()),
+                    () -> assertEquals(List.of(), revisao.get(0).images()),
+                    () -> assertSame(segunda, revisao.get(1).link().getQuestion()),
+                    () -> assertEquals(List.of(), revisao.get(1).answerOptions()),
+                    () -> assertEquals(List.of(figura), revisao.get(1).images()));
         }
     }
 }
