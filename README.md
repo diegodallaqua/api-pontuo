@@ -28,7 +28,7 @@ users.
 - [Known limitations](#known-limitations)
 
 ## Features
-
+ 
 - **Locations**: states, cities and addresses. All 27 Brazilian states and
   5,571 cities come preloaded.
 - **Institutions and entrance exams**: exam boards (INEP, FUVEST, VUNESP,
