@@ -4,6 +4,7 @@ import com.pontuo.api_pontuo.entity.AnswerOption;
 import com.pontuo.api_pontuo.entity.MockExam;
 import com.pontuo.api_pontuo.entity.MockExamHasQuestion;
 import com.pontuo.api_pontuo.entity.Question;
+import com.pontuo.api_pontuo.entity.QuestionImage;
 import com.pontuo.api_pontuo.entity.Subject;
 import com.pontuo.api_pontuo.entity.Topic;
 import com.pontuo.api_pontuo.entity.User;
@@ -29,7 +30,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 
 /**
  * Restrições que o banco garante sozinho, independentemente dos services
- * (migration V9). Os registros são gravados direto pelos repositórios, sem
+ * (migrations V9 e V16). Os registros são gravados direto pelos repositórios, sem
  * passar pelas validações da aplicação.
  */
 @DataJpaTest
@@ -56,6 +57,9 @@ class SchemaConstraintsTest {
 
     @Autowired
     private MockExamHasQuestionRepository linkRepository;
+
+    @Autowired
+    private QuestionImageRepository questionImageRepository;
 
     @Autowired
     private EntityManager entityManager;
@@ -140,6 +144,15 @@ class SchemaConstraintsTest {
             assertThrows(DataIntegrityViolationException.class,
                     () -> answerOptionRepository.saveAndFlush(alternativaDaOutra));
         }
+    }
+
+    @Test
+    @DisplayName("aceita imagem sem legenda (V16)")
+    void deveAceitarImagemSemLegenda() {
+        QuestionImage imagem = new QuestionImage(
+                "https://img.pontuo.app/question-images/abc.png", null, fixtures.questao("Questão com figura"));
+
+        assertNotNull(questionImageRepository.saveAndFlush(imagem).getId());
     }
 
     @Test
