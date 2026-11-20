@@ -1,6 +1,7 @@
 package com.pontuo.api_pontuo.config;
 
 import com.pontuo.api_pontuo.controller.AuthController;
+import com.pontuo.api_pontuo.controller.HealthController;
 import com.pontuo.api_pontuo.controller.MockExamController;
 import com.pontuo.api_pontuo.controller.MockExamHasQuestionController;
 import com.pontuo.api_pontuo.controller.PerformanceController;
@@ -53,6 +54,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @WebMvcTest(controllers = {
         AuthController.class,
+        HealthController.class,
         StateController.class,
         QuestionController.class,
         MockExamController.class,
@@ -137,6 +139,14 @@ class RouteAuthorizationTest {
         @DisplayName("especificação do Swagger é pública")
         void deveLiberarEspecificacaoOpenApi() throws Exception {
             mockMvc.perform(get("/openapi.yaml")).andExpect(status().isOk());
+        }
+
+        @Test
+        @DisplayName("/health é público e devolve o status do servidor")
+        void deveLiberarHealthCheck() throws Exception {
+            mockMvc.perform(get("/health"))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.status").value("UP"));
         }
     }
 

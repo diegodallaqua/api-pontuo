@@ -115,7 +115,36 @@ tags:
     description: "Gestão de usuários (administrador)."
   - name: "Perfis de usuário"
     description: Perfis de acesso (administrador).
+  - name: Monitoramento
+    description: "Verificação de disponibilidade do servidor."
 paths:
+  /health:
+    get:
+      tags:
+        - Monitoramento
+      operationId: health
+      summary: Status do servidor
+      description: |-
+        Indica que o servidor está no ar. É leve: não consulta o banco nem outras dependências,
+        então um `200` significa apenas que a aplicação responde.
+
+        **Acesso:** público (sem token).
+
+        **Exemplo cURL**
+
+        ```bash
+        curl -X GET "http://localhost:8080/health"
+        ```
+      security: []
+      responses:
+        "200":
+          description: Servidor no ar.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthResponse"
+              example:
+                status: UP
   /api/auth/register:
     post:
       tags:
@@ -5466,6 +5495,17 @@ components:
               value:
                 search: "search deve ter no máximo 100 caracteres"
   schemas:
+    HealthResponse:
+      type: object
+      description: "Status do servidor."
+      required:
+        - status
+      properties:
+        status:
+          type: string
+          enum:
+            - UP
+          example: UP
     ErrorMessage:
       type: object
       description: "Erro de autenticação, autorização, recurso não encontrado ou regra de negócio."

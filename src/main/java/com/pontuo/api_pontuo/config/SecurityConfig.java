@@ -86,9 +86,11 @@ public class SecurityConfig {
             .sessionManagement(session ->
                     session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
-                    // Únicas rotas públicas: obter um token e criar conta de estudante.
+                    // Rotas públicas da API: obter um token e criar conta de estudante.
                     .requestMatchers(HttpMethod.POST, "/api/auth/login", "/api/auth/register")
                             .permitAll()
+                    // Health check do monitoramento: público e sem dados sensíveis.
+                    .requestMatchers(HttpMethod.GET, "/health").permitAll()
                     // A documentação é pública; o "Try it out" envia o token normalmente.
                     .requestMatchers(HttpMethod.GET, API_DOCS).permitAll()
                     // Precisam de token, mas de nenhuma role específica.
