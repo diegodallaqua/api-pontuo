@@ -2,8 +2,8 @@
 -- buscas e chaves estrangeiras por ela.
 --   idx_answer_option_question (question_id)  -> uq_answer_option (question_id, letter)
 --   idx_mock_exam_user (user_id)               -> idx_mock_exam_user_finished (user_id, finished_at)
-ALTER TABLE answer_option DROP INDEX IF EXISTS idx_answer_option_question;
-ALTER TABLE mock_exam DROP INDEX IF EXISTS idx_mock_exam_user;
+ALTER TABLE answer_option DROP INDEX idx_answer_option_question;
+ALTER TABLE mock_exam DROP INDEX idx_mock_exam_user;
 
 -- A questão é classificada por tópico OU por matéria, nunca pelos dois (o
 -- tópico já define a matéria) nem por nenhum.
@@ -11,12 +11,12 @@ ALTER TABLE mock_exam DROP INDEX IF EXISTS idx_mock_exam_user;
 -- O MariaDB não aceita CHECK sobre coluna de chave estrangeira com ação em
 -- cascata, então as FKs de topic_id e subject_id perdem o ON UPDATE CASCADE.
 -- Não faz falta: os ids são auto-incremento e nunca são alterados.
-ALTER TABLE question
-    DROP FOREIGN KEY fk_question_topic,
-    DROP FOREIGN KEY fk_question_subject;
+ALTER TABLE question DROP FOREIGN KEY fk_question_topic;
+ALTER TABLE question DROP FOREIGN KEY fk_question_subject;
 
 ALTER TABLE question
-    ADD CONSTRAINT fk_question_topic FOREIGN KEY (topic_id) REFERENCES topic (id),
+    ADD CONSTRAINT fk_question_topic FOREIGN KEY (topic_id) REFERENCES topic (id);
+ALTER TABLE question
     ADD CONSTRAINT fk_question_subject FOREIGN KEY (subject_id) REFERENCES subject (id);
 
 ALTER TABLE question
@@ -34,8 +34,10 @@ ALTER TABLE mock_exam_has_question
     DROP FOREIGN KEY fk_mehq_answer_option;
 
 ALTER TABLE mock_exam_has_question
-    DROP INDEX idx_mehq_answer_option,
-    ADD KEY idx_mehq_answer_option (answer_option_id, question_id),
+    DROP INDEX idx_mehq_answer_option;
+ALTER TABLE mock_exam_has_question
+    ADD KEY idx_mehq_answer_option (answer_option_id, question_id);
+ALTER TABLE mock_exam_has_question
     ADD CONSTRAINT fk_mehq_answer_option
         FOREIGN KEY (answer_option_id, question_id) REFERENCES answer_option (id, question_id);
 
