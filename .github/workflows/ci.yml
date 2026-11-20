@@ -40,6 +40,16 @@ jobs:
       - name: Permitir execução do Maven Wrapper
         run: chmod +x mvnw
 
+      # O MariaDB 12.3 cria o banco com utf8mb4_uca1400_ai_ci, mas as tabelas das
+      # migrations usam utf8mb4_unicode_ci. As tabelas temporárias das migrations
+      # (V12, V13, V15) herdam a collation do banco e quebram o JOIN com
+      # "Illegal mix of collations". O README manda criar o banco com
+      # utf8mb4_unicode_ci; aqui fazemos o mesmo.
+      - name: Ajustar collation do banco
+        run: >
+          mysql -h 127.0.0.1 -P 3306 -u root -proot-apenas-para-ci
+          -e "ALTER DATABASE db_pontuo CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci"
+
       - name: Testes
         run: ./mvnw -B verify
         env:
