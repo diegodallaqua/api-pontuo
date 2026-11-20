@@ -8,6 +8,8 @@ import com.pontuo.api_pontuo.dto.KnowledgeAreaResponseDTO;
 import com.pontuo.api_pontuo.dto.PageResponseDTO;
 import com.pontuo.api_pontuo.dto.QuestionImageRequestDTO;
 import com.pontuo.api_pontuo.dto.QuestionImageResponseDTO;
+import com.pontuo.api_pontuo.dto.QuestionImageUploadRequestDTO;
+import com.pontuo.api_pontuo.dto.QuestionImageUploadResponseDTO;
 import com.pontuo.api_pontuo.dto.QuestionResponseDTO;
 import com.pontuo.api_pontuo.dto.StateResponseDTO;
 import com.pontuo.api_pontuo.dto.SubjectResponseDTO;
@@ -23,6 +25,8 @@ import com.pontuo.api_pontuo.entity.State;
 import com.pontuo.api_pontuo.entity.Subject;
 import com.pontuo.api_pontuo.entity.Topic;
 import com.pontuo.api_pontuo.security.Roles;
+import com.pontuo.api_pontuo.service.ImageStorageService;
+import com.pontuo.api_pontuo.service.PresignedUpload;
 import com.pontuo.api_pontuo.service.QuestionImageService;
 
 import jakarta.persistence.EntityNotFoundException;
@@ -42,9 +46,11 @@ import org.springframework.web.bind.annotation.*;
 public class QuestionImageController {
 
     private final QuestionImageService service;
+    private final ImageStorageService storage;
 
-    public QuestionImageController(QuestionImageService service) {
+    public QuestionImageController(QuestionImageService service, ImageStorageService storage) {
         this.service = service;
+        this.storage = storage;
     }
 
     @GetMapping
@@ -77,6 +83,22 @@ public class QuestionImageController {
     public QuestionImageResponseDTO create(@Valid @RequestBody QuestionImageRequestDTO requestDTO) {
         QuestionImage created = service.create(toEntity(requestDTO), requestDTO.questionId());
         return toResponseDTO(created);
+    }
+
+    /**
+     * Primeiro passo do upload: o frontend recebe uma URL assinada, envia o
+     * arquivo direto ao bucket e depois cadastra a imagem com a {@code url}
+     * devolvida aqui.
+     */
+    @PostMapping("/upload-url")
+    public QuestionImageUploadResponseDTO createUploadUrl(
+            @Valid @RequestBody QuestionImageUploadRequestDTO requestDTO) {
+        PresignedUpload upload = storage.presignUpload(requestDTO.contentType(), requestDTO.size());
+        return new QuestionImageUploadResponseDTO(
+                upload.uploadUrl(),
+                upload.headers(),
+                upload.url(),
+                upload.expiresAt());
     }
 
     @PutMapping("/{id}")

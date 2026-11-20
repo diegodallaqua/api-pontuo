@@ -33,6 +33,7 @@ class SizeMessageConsistencyTest {
             MockExamHasQuestionRequestDTO.class,
             MockExamRequestDTO.class,
             QuestionImageRequestDTO.class,
+            QuestionImageUploadRequestDTO.class,
             QuestionRequestDTO.class,
             RegisterRequestDTO.class,
             StateRequestDTO.class,

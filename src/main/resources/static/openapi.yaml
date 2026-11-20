@@ -3037,6 +3037,8 @@ paths:
       description: |-
         Cadastra uma imagem de questão.
 
+        Para um arquivo novo, envie-o antes ao bucket por `POST /api/question-images/upload-url` e use aqui a `url` devolvida.
+
         **Acesso:** somente administrador.
 
         **Exemplo cURL**
@@ -3084,6 +3086,72 @@ paths:
                 $ref: "#/components/schemas/ErrorMessage"
               example:
                 message: "Question não encontrada: id=99"
+  /api/question-images/upload-url:
+    post:
+      tags:
+        - "Imagens de questões"
+      operationId: createQuestionImageUploadUrl
+      summary: "Gerar URL de upload de imagem"
+      description: |-
+        Primeiro passo para cadastrar uma imagem nova. O arquivo não passa pela API: ela devolve uma URL assinada do Cloudflare R2 e o frontend envia o arquivo direto ao bucket.
+
+        1. Chame esta rota com o `contentType` e o `size` (em bytes) do arquivo.
+        2. Envie o arquivo com `PUT` para `uploadUrl`, repetindo os `headers` devolvidos, antes de `expiresAt` (10 minutos). O corpo é o arquivo puro, sem `multipart/form-data`.
+        3. Cadastre a imagem em `POST /api/question-images` com a `url` devolvida.
+
+        Tipo e tamanho fazem parte da assinatura: se o arquivo enviado for diferente do declarado, o R2 recusa o `PUT` com 403.
+
+        **Acesso:** somente administrador.
+
+        **Exemplo cURL**
+
+        ```bash
+        curl -X POST "http://localhost:8080/api/question-images/upload-url" \
+          -H "Authorization: Bearer $TOKEN" \
+          -H "Content-Type: application/json" \
+          -d '{"contentType": "image/png", "size": 48213}'
+
+        # Envio ao bucket, com a uploadUrl da resposta
+        curl -X PUT "$UPLOAD_URL" \
+          -H "Content-Type: image/png" \
+          --data-binary @figura-1.png
+        ```
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/QuestionImageUploadRequest"
+            example:
+              contentType: "image/png"
+              size: 48213
+      responses:
+        "200":
+          description: "URL assinada para o envio do arquivo."
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/QuestionImageUploadResponse"
+        "400":
+          description: "Corpo inválido. Uma mensagem por campo com erro."
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ValidationErrors"
+              example:
+                contentType: "contentType deve ser image/png, image/jpeg, image/webp ou image/gif"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "503":
+          description: "Armazenamento de imagens não configurado no servidor (variáveis `R2_*` ausentes)."
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorMessage"
+              example:
+                message: "Upload de imagens indisponível: armazenamento não configurado no servidor."
   /api/question-images/{id}:
     get:
       tags:
@@ -3123,6 +3191,8 @@ paths:
       summary: "Atualizar imagem de questão"
       description: |-
         Atualiza a imagem de questão informada. O corpo substitui todos os campos.
+
+        Se a `url` mudar, o arquivo anterior é apagado do bucket, desde que nenhuma outra imagem o use.
 
         **Acesso:** somente administrador.
 
@@ -3186,6 +3256,8 @@ paths:
       operationId: deleteQuestionImage
       summary: "Excluir imagem de questão"
       description: |-
+        Também apaga o arquivo do bucket, desde que nenhuma outra imagem o use. URLs de fora do bucket ficam intocadas.
+
         **Acesso:** somente administrador.
 
         **Exemplo cURL**
@@ -6261,6 +6333,50 @@ components:
           example: "Figura 1 — ciclo celular"
         question:
           $ref: "#/components/schemas/QuestionResponse"
+    QuestionImageUploadRequest:
+      type: object
+      required:
+        - contentType
+        - size
+      properties:
+        contentType:
+          type: string
+          enum:
+            - image/png
+            - image/jpeg
+            - image/webp
+            - image/gif
+          example: "image/png"
+        size:
+          type: integer
+          format: int64
+          minimum: 1
+          maximum: 5242880
+          description: "Tamanho exato do arquivo, em bytes. Máximo de 5 MB."
+          example: 48213
+    QuestionImageUploadResponse:
+      type: object
+      properties:
+        uploadUrl:
+          type: string
+          description: "URL assinada que recebe o arquivo por `PUT`."
+          example: "https://<conta>.r2.cloudflarestorage.com/pontuo/question-images/3f2b1c9e-7a4d-4e8b-9c1a-2d5e6f7a8b9c.png?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Signature=..."
+        headers:
+          type: object
+          additionalProperties:
+            type: string
+          description: "Headers que o `PUT` precisa enviar com estes valores, porque fazem parte da assinatura."
+          example:
+            Content-Type: "image/png"
+        url:
+          type: string
+          description: "Endereço público do arquivo, a ser usado em `POST /api/question-images`."
+          example: "https://pub-xxxx.r2.dev/question-images/3f2b1c9e-7a4d-4e8b-9c1a-2d5e6f7a8b9c.png"
+        expiresAt:
+          type: string
+          format: date-time
+          description: "Instante (UTC) em que a `uploadUrl` deixa de valer."
+          example: "2026-11-05T12:10:00Z"
     QuestionImagePage:
       description: "Página de QuestionImageResponse."
       allOf:

@@ -49,4 +49,13 @@ public interface QuestionImageRepository extends JpaRepository<QuestionImage, Lo
             ORDER BY question.id ASC, i.id ASC
             """)
     List<QuestionImage> findByQuestionIdIn(@Param("questionIds") Collection<Long> questionIds);
+
+    /**
+     * URLs das imagens de uma questão, lidas antes de apagá-la: o banco remove
+     * as imagens em cascata, mas os arquivos no bucket precisam ser apagados à parte.
+     */
+    @Query("SELECT i.url FROM QuestionImage i WHERE i.question.id = :questionId")
+    List<String> findUrlsByQuestionId(@Param("questionId") Long questionId);
+
+    boolean existsByUrl(String url);
 }

@@ -25,6 +25,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -38,6 +39,9 @@ class QuestionImageServiceTest {
 
     @Mock
     private QuestionRepository questionRepository;
+
+    @Mock
+    private ImageStorageService storage;
 
     @InjectMocks
     private QuestionImageService service;
@@ -110,6 +114,31 @@ class QuestionImageServiceTest {
         }
 
         @Test
+        @DisplayName("apaga do bucket o arquivo substituído")
+        void deveApagarArquivoAnterior() {
+            when(repository.findById(3L)).thenReturn(Optional.of(existente));
+            when(questionRepository.findById(10L)).thenReturn(Optional.of(questao));
+            when(repository.save(any(QuestionImage.class))).thenAnswer(invocation -> invocation.getArgument(0));
+            when(repository.existsByUrl("https://cdn.pontuo.com/antiga.png")).thenReturn(false);
+
+            service.update(3L, new QuestionImage("https://cdn.pontuo.com/nova.png", null), 10L);
+
+            verify(storage).delete("https://cdn.pontuo.com/antiga.png");
+        }
+
+        @Test
+        @DisplayName("mantém o arquivo quando a url não muda")
+        void deveManterArquivoComMesmaUrl() {
+            when(repository.findById(3L)).thenReturn(Optional.of(existente));
+            when(questionRepository.findById(10L)).thenReturn(Optional.of(questao));
+            when(repository.save(any(QuestionImage.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+            service.update(3L, new QuestionImage("https://cdn.pontuo.com/antiga.png", "Nova legenda"), 10L);
+
+            verifyNoInteractions(storage);
+        }
+
+        @Test
         @DisplayName("falha quando a imagem não existe")
         void deveFalharQuandoImagemNaoExiste() {
             when(repository.findById(404L)).thenReturn(Optional.empty());
@@ -140,24 +169,41 @@ class QuestionImageServiceTest {
     class DeleteEConsultas {
 
         @Test
-        @DisplayName("delete remove a imagem existente")
+        @DisplayName("delete remove a imagem existente e o arquivo dela")
         void deveRemoverExistente() {
-            when(repository.existsById(3L)).thenReturn(true);
+            QuestionImage imagem = new QuestionImage("https://cdn.pontuo.com/grafico.png", null, questao);
+            when(repository.findById(3L)).thenReturn(Optional.of(imagem));
+            when(repository.existsByUrl("https://cdn.pontuo.com/grafico.png")).thenReturn(false);
 
             service.delete(3L);
 
-            verify(repository).deleteById(3L);
+            verify(repository).delete(imagem);
+            verify(storage).delete("https://cdn.pontuo.com/grafico.png");
+        }
+
+        @Test
+        @DisplayName("delete mantém o arquivo que outra imagem ainda usa")
+        void deveManterArquivoCompartilhado() {
+            QuestionImage imagem = new QuestionImage("https://cdn.pontuo.com/grafico.png", null, questao);
+            when(repository.findById(3L)).thenReturn(Optional.of(imagem));
+            when(repository.existsByUrl("https://cdn.pontuo.com/grafico.png")).thenReturn(true);
+
+            service.delete(3L);
+
+            verify(repository).delete(imagem);
+            verifyNoInteractions(storage);
         }
 
         @Test
         @DisplayName("delete falha quando a imagem não existe")
         void deveFalharAoRemoverInexistente() {
-            when(repository.existsById(404L)).thenReturn(false);
+            when(repository.findById(404L)).thenReturn(Optional.empty());
 
             EntityNotFoundException ex = assertThrows(EntityNotFoundException.class, () -> service.delete(404L));
 
             assertEquals("QuestionImage não encontrada: id=404", ex.getMessage());
-            verify(repository, never()).deleteById(any());
+            verify(repository, never()).delete(any());
+            verifyNoInteractions(storage);
         }
 
         @Test

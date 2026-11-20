@@ -144,6 +144,7 @@ Preencha o `.env`:
 | `DB_PASSWORD` | Senha desse usuário |
 | `JWT_SECRET` | Segredo de assinatura dos tokens, com no mínimo 32 caracteres |
 | `CORS_ALLOWED_ORIGINS` | Opcional. Origens liberadas para chamar a API pelo navegador, separadas por vírgula. Padrão: `http://localhost:*,http://127.0.0.1:*` |
+| `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_BUCKET`, `R2_PUBLIC_URL` | Opcionais. Bucket do Cloudflare R2 das imagens das questões (veja [Upload de imagens](#upload-de-imagens)). Sem elas o upload de imagens responde 503 |
 
 Para gerar um `JWT_SECRET` aleatório:
 
@@ -494,6 +495,7 @@ no claim `roles` do token.
 | `security.jwt.issuer` | Emissor gravado e validado no token (`api-pontuo`) |
 | `security.jwt.expiration-minutes` | Validade do token, em minutos (padrão: 120) |
 | `security.cors.allowed-origins` | Origens liberadas no CORS, vindas de `CORS_ALLOWED_ORIGINS` |
+| `storage.r2.*` | Bucket do Cloudflare R2 das imagens das questões, vindo das variáveis `R2_*` |
 
 ### CORS
 
@@ -509,6 +511,37 @@ os headers, `Authorization`, `Content-Type` e `Accept`. O preflight (`OPTIONS`)
 é respondido antes das regras de autorização, então não exige token. Não há
 envio de credenciais: a identidade vem do header `Authorization`, não de
 cookie.
+
+### Upload de imagens
+
+Os arquivos das imagens das questões ficam num bucket do Cloudflare R2 e não
+passam pela API. O frontend:
+
+1. Chama `POST /api/question-images/upload-url` com o `contentType` e o `size`
+   do arquivo e recebe uma `uploadUrl` assinada, válida por 10 minutos.
+2. Envia o arquivo com `PUT` para a `uploadUrl`, com os `headers` devolvidos.
+3. Cadastra a imagem em `POST /api/question-images` com a `url` devolvida.
+
+A assinatura cobre o tipo e o tamanho do arquivo, então o R2 recusa um arquivo
+diferente. São aceitos PNG, JPEG, WebP e GIF, até 5 MB. Excluir uma imagem, ou
+trocar a `url` dela, apaga também o arquivo anterior do bucket; excluir uma
+questão faz o mesmo com as imagens dela.
+
+O navegador envia o `PUT` direto ao R2, então o bucket precisa da própria
+política de CORS (R2 > bucket > Settings > CORS Policy):
+
+```json
+[
+  {
+    "AllowedOrigins": ["http://localhost:5173", "https://pontuo.vercel.app"],
+    "AllowedMethods": ["PUT"],
+    "AllowedHeaders": ["Content-Type"],
+    "MaxAgeSeconds": 3600
+  }
+]
+```
+
+Ajuste `http://localhost:5173` para a porta em que o React roda localmente.
 
 ### Como funciona o logout
 

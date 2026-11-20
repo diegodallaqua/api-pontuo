@@ -40,6 +40,7 @@ public class QuestionService {
     private final KnowledgeAreaRepository knowledgeAreaRepository;
     private final AnswerOptionRepository answerOptionRepository;
     private final QuestionImageRepository questionImageRepository;
+    private final ImageStorageService imageStorage;
 
     public QuestionService(QuestionRepository repository,
                            EntranceExamRepository entranceExamRepository,
@@ -47,7 +48,8 @@ public class QuestionService {
                            SubjectRepository subjectRepository,
                            KnowledgeAreaRepository knowledgeAreaRepository,
                            AnswerOptionRepository answerOptionRepository,
-                           QuestionImageRepository questionImageRepository) {
+                           QuestionImageRepository questionImageRepository,
+                           ImageStorageService imageStorage) {
         this.repository = repository;
         this.entranceExamRepository = entranceExamRepository;
         this.topicRepository = topicRepository;
@@ -55,6 +57,7 @@ public class QuestionService {
         this.knowledgeAreaRepository = knowledgeAreaRepository;
         this.answerOptionRepository = answerOptionRepository;
         this.questionImageRepository = questionImageRepository;
+        this.imageStorage = imageStorage;
     }
 
     /** Busca paginada; os filtros informados valem juntos. */
@@ -147,7 +150,13 @@ public class QuestionService {
         if (!repository.existsById(id)) {
             throw new EntityNotFoundException("Question não encontrada: id=" + id);
         }
+        // As imagens saem junto pelo ON DELETE CASCADE do banco; os arquivos
+        // no bucket não, então as URLs são lidas antes.
+        List<String> imageUrls = questionImageRepository.findUrlsByQuestionId(id);
         repository.deleteById(id);
+        imageUrls.stream()
+                .filter(url -> !questionImageRepository.existsByUrl(url))
+                .forEach(imageStorage::delete);
     }
 
     // Filtro que aponta para registro inexistente é erro do cliente, não

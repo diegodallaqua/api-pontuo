@@ -80,6 +80,9 @@ class QuestionServiceTest {
     @Mock
     private QuestionImageRepository questionImageRepository;
 
+    @Mock
+    private ImageStorageService imageStorage;
+
     @InjectMocks
     private QuestionService service;
 
@@ -272,6 +275,22 @@ class QuestionServiceTest {
             service.delete(50L);
 
             verify(repository).deleteById(50L);
+        }
+
+        @Test
+        @DisplayName("delete apaga do bucket os arquivos das imagens da questão")
+        void deveApagarArquivosDasImagens() {
+            when(repository.existsById(50L)).thenReturn(true);
+            when(questionImageRepository.findUrlsByQuestionId(50L))
+                    .thenReturn(List.of("https://cdn.pontuo.com/a.png", "https://cdn.pontuo.com/b.png"));
+            when(questionImageRepository.existsByUrl("https://cdn.pontuo.com/a.png")).thenReturn(false);
+            when(questionImageRepository.existsByUrl("https://cdn.pontuo.com/b.png")).thenReturn(true);
+
+            service.delete(50L);
+
+            verify(repository).deleteById(50L);
+            verify(imageStorage).delete("https://cdn.pontuo.com/a.png");
+            verify(imageStorage, never()).delete("https://cdn.pontuo.com/b.png");
         }
 
         @Test

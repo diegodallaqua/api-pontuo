@@ -18,11 +18,14 @@ public class QuestionImageService {
 
     private final QuestionImageRepository repository;
     private final QuestionRepository questionRepository;
+    private final ImageStorageService storage;
 
     public QuestionImageService(QuestionImageRepository repository,
-                                QuestionRepository questionRepository) {
+                                QuestionRepository questionRepository,
+                                ImageStorageService storage) {
         this.repository = repository;
         this.questionRepository = questionRepository;
+        this.storage = storage;
     }
 
     public Page<QuestionImage> findAll(String search, Pageable pageable) {
@@ -50,17 +53,32 @@ public class QuestionImageService {
                 .orElseThrow(() -> new EntityNotFoundException(
                         "QuestionImage não encontrada: id=" + id));
 
+        String previousUrl = existing.getUrl();
         existing.setUrl(updated.getUrl());
         existing.setSubtitle(updated.getSubtitle());
         existing.setQuestion(findQuestion(questionId));
-        return repository.save(existing);
+        QuestionImage saved = repository.save(existing);
+
+        // Trocar o arquivo deixaria o anterior no bucket sem ninguém apontando para ele.
+        if (!previousUrl.equals(saved.getUrl())) {
+            deleteFileIfUnused(previousUrl);
+        }
+        return saved;
     }
 
     public void delete(Long id) {
-        if (!repository.existsById(id)) {
-            throw new EntityNotFoundException("QuestionImage não encontrada: id=" + id);
+        QuestionImage existing = repository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException(
+                        "QuestionImage não encontrada: id=" + id));
+        repository.delete(existing);
+        deleteFileIfUnused(existing.getUrl());
+    }
+
+    // Nada impede cadastrar a mesma URL duas vezes; o arquivo só sai com a última.
+    private void deleteFileIfUnused(String url) {
+        if (!repository.existsByUrl(url)) {
+            storage.delete(url);
         }
-        repository.deleteById(id);
     }
 
     private Question findQuestion(Long questionId) {
