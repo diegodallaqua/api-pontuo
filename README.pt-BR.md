@@ -500,8 +500,9 @@ no claim `roles` do token.
 O navegador bloqueia as chamadas de um frontend em outra origem enquanto a API
 não as libera, então as origens permitidas ficam em
 `security.cors.allowed-origins`. O padrão (`http://localhost:*,http://127.0.0.1:*`)
-cobre o Flutter Web em modo debug, que sobe numa porta aleatória; em produção
-aponte `CORS_ALLOWED_ORIGINS` para o domínio do app.
+cobre o servidor de desenvolvimento do React em qualquer porta (o Vite usa a
+5173 e o Create React App, a 3000, e ambos trocam de porta quando ela está
+ocupada); em produção aponte `CORS_ALLOWED_ORIGINS` para o domínio do app.
 
 Os métodos liberados são `GET`, `POST`, `PUT`, `PATCH`, `DELETE` e `OPTIONS`, e
 os headers, `Authorization`, `Content-Type` e `Accept`. O preflight (`OPTIONS`)

@@ -503,8 +503,9 @@ stored in the token's `roles` claim.
 
 A browser blocks calls from a frontend on another origin unless the API allows
 it, so the allowed origins are configured in `security.cors.allowed-origins`.
-The default (`http://localhost:*,http://127.0.0.1:*`) covers Flutter Web in
-debug mode, which uses a random port; in production point
+The default (`http://localhost:*,http://127.0.0.1:*`) covers the React dev
+server on any port (Vite uses 5173 and Create React App 3000, and both move to
+another port when that one is taken); in production point
 `CORS_ALLOWED_ORIGINS` at the app's domain.
 
 Allowed methods are `GET`, `POST`, `PUT`, `PATCH`, `DELETE` and `OPTIONS`, and

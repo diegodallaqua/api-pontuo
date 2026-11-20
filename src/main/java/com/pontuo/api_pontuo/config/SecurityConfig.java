@@ -119,7 +119,7 @@ public class SecurityConfig {
 
     /**
      * Sem isto o navegador bloqueia qualquer chamada de um frontend em outra
-     * origem — que é o caso do Flutter Web. As origens liberadas vêm da
+     * origem — que é o caso do frontend em React. As origens liberadas vêm da
      * configuração; o preflight (OPTIONS) é respondido aqui, antes das regras
      * de autorização, então não exige token. allowCredentials fica desligado
      * de propósito: a identidade vem do header Authorization, não de cookie.
@@ -128,8 +128,8 @@ public class SecurityConfig {
     public CorsConfigurationSource corsConfigurationSource(
             @Value("${security.cors.allowed-origins}") List<String> allowedOrigins) {
         CorsConfiguration configuration = new CorsConfiguration();
-        // Patterns, e não origens fixas, porque o Flutter Web em modo debug
-        // sobe numa porta aleatória de localhost.
+        // Patterns, e não origens fixas, porque o servidor de desenvolvimento
+        // do React muda de porta em localhost quando a padrão está ocupada.
         configuration.setAllowedOriginPatterns(allowedOrigins);
         configuration.setAllowedMethods(List.of(
                 HttpMethod.GET.name(),
